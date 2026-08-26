@@ -45,13 +45,11 @@ function getBaseParams() {
   };
 }
 
-/*
- * GET
- *
- * Get one playlist.
- *
- * /api/navidrome/playlist?id=PLAYLIST_ID
- */
+/* =========================================================
+   GET - Get one playlist
+   /api/navidrome/playlist?id=PLAYLIST_ID
+   ========================================================= */
+
 export async function GET(
   request: NextRequest
 ) {
@@ -130,18 +128,11 @@ export async function GET(
   }
 }
 
-/*
- * POST
- *
- * Add songs to playlist.
- *
- * Body:
- *
- * {
- *   "playlistId": "...",
- *   "songIds": ["...", "..."]
- * }
- */
+/* =========================================================
+   POST - Add songs to playlist
+   Prevent duplicate songs
+   ========================================================= */
+
 export async function POST(
   request: NextRequest
 ) {
@@ -155,18 +146,35 @@ export async function POST(
         ? body.playlistId.trim()
         : "";
 
-    const songIds =
-      Array.isArray(body?.songIds)
+    /*
+     * Only accept valid string IDs.
+     */
+    const songIds: string[] =
+      Array.isArray(
+        body?.songIds
+      )
         ? body.songIds.filter(
-            (id: unknown) =>
-              typeof id === "string" &&
+            (
+              id: unknown
+            ): id is string =>
+              typeof id ===
+                "string" &&
               id.trim().length > 0
           )
         : [];
 
+    /*
+     * Remove duplicate IDs from
+     * the same request.
+     */
+    const uniqueSongIds: string[] = [
+      ...new Set(songIds),
+    ];
+
     if (!playlistId) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Playlist ID is required",
         },
@@ -176,9 +184,12 @@ export async function POST(
       );
     }
 
-    if (songIds.length === 0) {
+    if (
+      uniqueSongIds.length === 0
+    ) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "At least one song ID is required",
         },
@@ -191,6 +202,127 @@ export async function POST(
     const { baseUrl } =
       getConfig();
 
+    /*
+     * Get the current playlist
+     * before adding anything.
+     */
+    const getParams =
+      new URLSearchParams({
+        ...getBaseParams(),
+        id: playlistId,
+      });
+
+    const playlistResponse =
+      await fetch(
+        `${baseUrl}/rest/getPlaylist.view?${getParams.toString()}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+    const playlistData =
+      await playlistResponse.json();
+
+    if (!playlistResponse.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Failed to read playlist",
+          details:
+            playlistData,
+        },
+        {
+          status:
+            playlistResponse.status,
+        }
+      );
+    }
+
+    /*
+     * Safely extract playlist songs.
+     */
+    const currentSongs: Array<{
+      id?: string;
+    }> =
+      Array.isArray(
+        playlistData?.[
+          "subsonic-response"
+        ]?.playlist?.entry
+      )
+        ? playlistData[
+            "subsonic-response"
+          ].playlist.entry
+        : [];
+
+    /*
+     * Build a set of IDs that
+     * already exist.
+     */
+    const existingIds =
+      new Set<string>();
+
+    for (const song of currentSongs) {
+      if (
+        song &&
+        typeof song.id ===
+          "string" &&
+        song.id.length > 0
+      ) {
+        existingIds.add(
+          song.id
+        );
+      }
+    }
+
+    /*
+     * Only add songs that don't
+     * already exist.
+     */
+    const songsToAdd =
+      uniqueSongIds.filter(
+        (id) =>
+          !existingIds.has(id)
+      );
+
+    /*
+     * These songs were already
+     * present.
+     */
+    const alreadyExists =
+      uniqueSongIds.filter(
+        (id) =>
+          existingIds.has(id)
+      );
+
+    /*
+     * Everything already exists.
+     *
+     * Do not call Navidrome.
+     */
+    if (songsToAdd.length === 0) {
+      return NextResponse.json({
+        success: true,
+        added: 0,
+        requested:
+          uniqueSongIds.length,
+        alreadyExists: true,
+        addedSongIds: [],
+        existingSongIds:
+          alreadyExists,
+        playlist:
+          playlistData?.[
+            "subsonic-response"
+          ]?.playlist,
+      });
+    }
+
+    /*
+     * Add only new songs.
+     *
+     * Navidrome parameter:
+     * songIdToAdd
+     */
     const params =
       new URLSearchParams(
         getBaseParams()
@@ -201,27 +333,20 @@ export async function POST(
       playlistId
     );
 
-    /*
-     * Navidrome/OpenSubsonic expects
-     * songId parameters.
-     *
-     * Add each songId separately.
-     */
-   for (const songId of songIds) {
-  params.append(
-    "songIdToAdd",
-    songId
-  );
-}
+    for (const songId of songsToAdd) {
+      params.append(
+        "songIdToAdd",
+        songId
+      );
+    }
 
     console.log(
-      "Updating playlist:",
-      playlistId
-    );
-
-    console.log(
-      "Songs:",
-      songIds
+      "Adding songs to playlist:",
+      {
+        playlistId,
+        songsToAdd,
+        alreadyExists,
+      }
     );
 
     const response =
@@ -236,7 +361,7 @@ export async function POST(
       await response.json();
 
     console.log(
-      "Navidrome response:",
+      "Navidrome updatePlaylist response:",
       JSON.stringify(
         data,
         null,
@@ -260,18 +385,14 @@ export async function POST(
     }
 
     /*
-     * Verify that the songs were
-     * actually added.
+     * Verify the playlist after
+     * adding the songs.
      */
     const verifyParams =
-      new URLSearchParams(
-        getBaseParams()
-      );
-
-    verifyParams.set(
-      "id",
-      playlistId
-    );
+      new URLSearchParams({
+        ...getBaseParams(),
+        id: playlistId,
+      });
 
     const verifyResponse =
       await fetch(
@@ -284,22 +405,54 @@ export async function POST(
     const verifyData =
       await verifyResponse.json();
 
+    /*
+     * If verification fails,
+     * return the Navidrome update
+     * result rather than reporting
+     * a false failure.
+     */
+    if (!verifyResponse.ok) {
+      return NextResponse.json({
+        success: true,
+        added:
+          songsToAdd.length,
+        requested:
+          uniqueSongIds.length,
+        alreadyExists:
+          alreadyExists.length >
+          0,
+        addedSongIds:
+          songsToAdd,
+        existingSongIds:
+          alreadyExists,
+        response: data,
+      });
+    }
+
     const playlist =
       verifyData?.[
         "subsonic-response"
       ]?.playlist;
 
     const entries =
-      playlist?.entry ?? [];
+      Array.isArray(
+        playlist?.entry
+      )
+        ? playlist.entry
+        : [];
 
-    const addedSongs =
-      entries.filter(
-        (song: {
-          id?: string;
-        }) =>
-          song.id &&
-          songIds.includes(
-            song.id
+    /*
+     * Verify which requested
+     * songs actually exist.
+     */
+    const actuallyAdded =
+      songsToAdd.filter(
+        (id) =>
+          entries.some(
+            (song: {
+              id?: string;
+            }) =>
+              song.id === id
           )
       );
 
@@ -307,10 +460,20 @@ export async function POST(
       success: true,
 
       added:
-        addedSongs.length,
+        actuallyAdded.length,
 
       requested:
-        songIds.length,
+        uniqueSongIds.length,
+
+      alreadyExists:
+        alreadyExists.length >
+        0,
+
+      addedSongIds:
+        actuallyAdded,
+
+      existingSongIds:
+        alreadyExists,
 
       playlist,
 
@@ -328,7 +491,7 @@ export async function POST(
         error:
           error instanceof Error
             ? error.message
-            : "Failed to add songs",
+            : "Failed to add songs to playlist",
       },
       {
         status: 500,
@@ -337,18 +500,10 @@ export async function POST(
   }
 }
 
-/*
- * PUT
- *
- * Rename playlist.
- *
- * Body:
- *
- * {
- *   "playlistId": "...",
- *   "name": "New Name"
- * }
- */
+/* =========================================================
+   PUT - Rename playlist
+   ========================================================= */
+
 export async function PUT(
   request: NextRequest
 ) {
@@ -371,6 +526,7 @@ export async function PUT(
     if (!playlistId) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Playlist ID is required",
         },
@@ -383,6 +539,7 @@ export async function PUT(
     if (!name) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Playlist name is required",
         },
@@ -406,7 +563,6 @@ export async function PUT(
       await fetch(
         `${baseUrl}/rest/updatePlaylist.view?${params.toString()}`,
         {
-          method: "GET",
           cache: "no-store",
         }
       );
@@ -417,6 +573,7 @@ export async function PUT(
     if (!response.ok) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Navidrome request failed",
           details: data,
@@ -440,6 +597,7 @@ export async function PUT(
 
     return NextResponse.json(
       {
+        success: false,
         error:
           error instanceof Error
             ? error.message
@@ -452,21 +610,10 @@ export async function PUT(
   }
 }
 
-/*
- * DELETE
- *
- * Remove songs from playlist.
- *
- * Body:
- *
- * {
- *   "playlistId": "...",
- *   "songIndexes": [0, 2]
- * }
- *
- * Navidrome/OpenSubsonic uses
- * songIndex for removing songs.
- */
+/* =========================================================
+   DELETE - Remove songs from playlist
+   ========================================================= */
+
 export async function DELETE(
   request: NextRequest
 ) {
@@ -480,20 +627,28 @@ export async function DELETE(
         ? body.playlistId.trim()
         : "";
 
-    const songIndexes =
+    const rawSongIndexes: unknown[] =
       Array.isArray(
         body?.songIndexes
       )
-        ? body.songIndexes.filter(
-            (index: unknown) =>
-              Number.isInteger(index) &&
-              (index as number) >= 0
-          )
+        ? body.songIndexes
         : [];
+
+    const songIndexes: number[] =
+      rawSongIndexes.filter(
+        (
+          index
+        ): index is number =>
+          typeof index ===
+            "number" &&
+          Number.isInteger(index) &&
+          index >= 0
+      );
 
     if (!playlistId) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Playlist ID is required",
         },
@@ -508,6 +663,7 @@ export async function DELETE(
     ) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "At least one song index is required",
         },
@@ -526,11 +682,15 @@ export async function DELETE(
         playlistId,
       });
 
+    /*
+     * Remove songs using their
+     * playlist indexes.
+     */
     for (
       const index of songIndexes
     ) {
       params.append(
-        "songIndex",
+        "songIndexToRemove",
         String(index)
       );
     }
@@ -539,7 +699,6 @@ export async function DELETE(
       await fetch(
         `${baseUrl}/rest/updatePlaylist.view?${params.toString()}`,
         {
-          method: "GET",
           cache: "no-store",
         }
       );
@@ -550,6 +709,7 @@ export async function DELETE(
     if (!response.ok) {
       return NextResponse.json(
         {
+          success: false,
           error:
             "Navidrome request failed",
           details: data,
@@ -563,6 +723,8 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
+      removed:
+        songIndexes.length,
       response: data,
     });
   } catch (error) {
@@ -573,6 +735,7 @@ export async function DELETE(
 
     return NextResponse.json(
       {
+        success: false,
         error:
           error instanceof Error
             ? error.message

@@ -120,6 +120,9 @@ export async function GET() {
  * {
  *   "name": "My Playlist"
  * }
+ *
+ * Duplicate names are prevented
+ * case-insensitively.
  */
 export async function POST(
   request: NextRequest
@@ -149,6 +152,116 @@ export async function POST(
 
     const { baseUrl } =
       getConfig();
+
+    /*
+     * -------------------------------------------------------
+     * STEP 1
+     * Check existing playlists BEFORE creating.
+     * -------------------------------------------------------
+     */
+
+    const checkParams =
+      new URLSearchParams(
+        baseParams()
+      );
+
+    const checkResponse =
+      await fetch(
+        `${baseUrl}/rest/getPlaylists.view?${checkParams.toString()}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+    const checkData =
+      await checkResponse.json();
+
+    if (!checkResponse.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Failed to check existing playlists",
+          details:
+            checkData,
+        },
+        {
+          status:
+            checkResponse.status,
+        }
+      );
+    }
+
+    const existingPlaylists: Array<{
+      id?: string;
+      name?: string;
+      songCount?: number;
+      duration?: number;
+      coverArt?: string;
+      owner?: string;
+      public?: boolean;
+      readonly?: boolean;
+    }> =
+      Array.isArray(
+        checkData?.[
+          "subsonic-response"
+        ]?.playlists?.playlist
+      )
+        ? checkData[
+            "subsonic-response"
+          ].playlists.playlist
+        : [];
+
+    /*
+     * Case-insensitive duplicate check.
+     *
+     * These are considered the same:
+     *
+     * Test Playlist
+     * test playlist
+     * TEST PLAYLIST
+     * Test Playlist
+     */
+
+    const normalizedName =
+      name.toLowerCase();
+
+    const existingPlaylist =
+      existingPlaylists.find(
+        (playlist) =>
+          typeof playlist.name ===
+            "string" &&
+          playlist.name
+            .trim()
+            .toLowerCase() ===
+            normalizedName
+      );
+
+    /*
+     * -------------------------------------------------------
+     * DUPLICATE FOUND
+     * -------------------------------------------------------
+     */
+
+    if (existingPlaylist) {
+  return NextResponse.json({
+    success: true,
+    created: false,
+    alreadyExists: true,
+    playlist:
+      existingPlaylist,
+    message:
+      "A playlist with this name already exists.",
+  });
+}
+
+    /*
+     * -------------------------------------------------------
+     * STEP 2
+     * Playlist doesn't exist.
+     * Create it.
+     * -------------------------------------------------------
+     */
 
     const params =
       new URLSearchParams({
@@ -198,9 +311,9 @@ export async function POST(
     }
 
     /*
-     * Check the Subsonic response
-     * status explicitly.
+     * Check Subsonic status.
      */
+
     const subsonic =
       data?.[
         "subsonic-response"
@@ -224,12 +337,13 @@ export async function POST(
     }
 
     /*
-     * Navidrome may return an empty
-     * playlist object for createPlaylist.
-     *
-     * So fetch playlists again and
-     * find the newly-created one.
+     * -------------------------------------------------------
+     * STEP 3
+     * Fetch playlists again to get
+     * the actual created playlist.
+     * -------------------------------------------------------
      */
+
     const verifyParams =
       new URLSearchParams(
         baseParams()
@@ -246,19 +360,56 @@ export async function POST(
     const verifyData =
       await verifyResponse.json();
 
-    const playlists =
-      verifyData?.[
-        "subsonic-response"
-      ]?.playlists?.playlist ??
-      [];
+    if (!verifyResponse.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Playlist was created, but verification failed",
+          details:
+            verifyData,
+        },
+        {
+          status:
+            verifyResponse.status,
+        }
+      );
+    }
+
+    const playlists: Array<{
+      id?: string;
+      name?: string;
+      songCount?: number;
+      duration?: number;
+      coverArt?: string;
+      owner?: string;
+      public?: boolean;
+      readonly?: boolean;
+    }> =
+      Array.isArray(
+        verifyData?.[
+          "subsonic-response"
+        ]?.playlists?.playlist
+      )
+        ? verifyData[
+            "subsonic-response"
+          ].playlists.playlist
+        : [];
+
+    /*
+     * Find the created playlist
+     * case-insensitively.
+     */
 
     const createdPlaylist =
       playlists.find(
-        (playlist: {
-          name?: string;
-        }) =>
-          playlist.name ===
-          name
+        (playlist) =>
+          typeof playlist.name ===
+            "string" &&
+          playlist.name
+            .trim()
+            .toLowerCase() ===
+            normalizedName
       );
 
     if (!createdPlaylist) {
@@ -281,6 +432,8 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
+      created: true,
+      alreadyExists: false,
       playlist:
         createdPlaylist,
     });

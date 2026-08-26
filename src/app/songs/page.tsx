@@ -206,33 +206,26 @@ export default function SongsPage() {
     try {
       setPlaylistLoading(true);
 
-      const response =
-        await fetch(
-          "/api/navidrome/playlist",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              playlistId,
-              songIds: [song.id],
-            }),
-          }
-        );
+      const response = await fetch(
+        "/api/navidrome/playlist",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            playlistId,
+            songIds: [song.id],
+          }),
+        }
+      );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
-      if (
-        !response.ok ||
-        !data.success ||
-        data.added !== 1
-      ) {
+      if (!response.ok || !data.success) {
         throw new Error(
           data.error ||
-            "Failed to add song"
+          "Failed to add song"
         );
       }
 
@@ -242,12 +235,17 @@ export default function SongsPage() {
             item.id === playlistId
         );
 
-      setMessage(
-        `"${song.title}" added to ${
-          playlist?.name ??
-          "playlist"
-        }`
-      );
+      if (data.added === 0) {
+        setMessage(
+          `"${song.title}" is already in ${playlist?.name ?? "this playlist"
+          }`
+        );
+      } else {
+        setMessage(
+          `"${song.title}" added to ${playlist?.name ?? "playlist"
+          }`
+        );
+      }
 
       setOpenMenu(null);
 
@@ -261,7 +259,9 @@ export default function SongsPage() {
       );
 
       setMessage(
-        "Failed to add song to playlist"
+        error instanceof Error
+          ? error.message
+          : "Failed to add song to playlist"
       );
 
       setTimeout(() => {
@@ -277,8 +277,7 @@ export default function SongsPage() {
    * add the selected song.
    */
   async function createPlaylist() {
-    const name =
-      newPlaylistName.trim();
+    const name = newPlaylistName.trim();
 
     if (!name || !selectedSong) {
       return;
@@ -288,22 +287,20 @@ export default function SongsPage() {
       setPlaylistLoading(true);
 
       /*
-       * Create playlist
+       * Create playlist OR find existing playlist
        */
-      const createResponse =
-        await fetch(
-          "/api/navidrome/playlists",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              name,
-            }),
-          }
-        );
+      const createResponse = await fetch(
+        "/api/navidrome/playlists",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+          }),
+        }
+      );
 
       const createData =
         await createResponse.json();
@@ -314,34 +311,44 @@ export default function SongsPage() {
       ) {
         throw new Error(
           createData.error ||
-            "Failed to create playlist"
+          "Failed to create playlist"
         );
       }
 
-      const newPlaylist =
+      const targetPlaylist =
         createData.playlist;
 
-      /*
-       * Add selected song
-       */
-      const addResponse =
-        await fetch(
-          "/api/navidrome/playlist",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              playlistId:
-                newPlaylist.id,
-              songIds: [
-                selectedSong.id,
-              ],
-            }),
-          }
+      if (
+        !targetPlaylist?.id
+      ) {
+        throw new Error(
+          "Playlist ID was not returned"
         );
+      }
+
+      /*
+       * Add selected song.
+       *
+       * This works for BOTH:
+       * - newly created playlist
+       * - existing playlist
+       */
+      const addResponse = await fetch(
+        "/api/navidrome/playlist",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            playlistId:
+              targetPlaylist.id,
+            songIds: [
+              selectedSong.id,
+            ],
+          }),
+        }
+      );
 
       const addData =
         await addResponse.json();
@@ -352,18 +359,62 @@ export default function SongsPage() {
       ) {
         throw new Error(
           addData.error ||
-            "Playlist created but song could not be added"
+          "Song could not be added to playlist"
         );
       }
 
-      setPlaylists((current) => [
-        ...current,
-        newPlaylist,
-      ]);
+      /*
+       * Refresh playlist list instead
+       * of blindly adding another copy
+       * to local state.
+       */
+      const playlistsResponse =
+        await fetch(
+          "/api/navidrome/playlists",
+          {
+            cache: "no-store",
+          }
+        );
 
-      setMessage(
-        `Created "${name}" and added "${selectedSong.title}"`
-      );
+      if (playlistsResponse.ok) {
+        const playlistsData =
+          await playlistsResponse.json();
+
+        const latestPlaylists =
+          playlistsData[
+            "subsonic-response"
+          ]?.playlists?.playlist ?? [];
+
+        setPlaylists(
+          latestPlaylists
+        );
+      }
+
+      /*
+       * Correct message depending on
+       * whether playlist already existed.
+       */
+      if (createData.alreadyExists) {
+        if (addData.added === 0) {
+          setMessage(
+            `"${targetPlaylist.name}" already exists — "${selectedSong.title}" is already in it`
+          );
+        } else {
+          setMessage(
+            `"${targetPlaylist.name}" already exists — "${selectedSong.title}" added`
+          );
+        }
+      } else {
+        if (addData.added === 0) {
+          setMessage(
+            `"${targetPlaylist.name}" created — "${selectedSong.title}" is already in it`
+          );
+        } else {
+          setMessage(
+            `Created "${targetPlaylist.name}" and added "${selectedSong.title}"`
+          );
+        }
+      }
 
       setShowCreatePlaylist(false);
       setNewPlaylistName("");
@@ -372,7 +423,7 @@ export default function SongsPage() {
 
       setTimeout(() => {
         setMessage("");
-      }, 3000);
+      }, 3500);
     } catch (error) {
       console.error(
         "Create playlist error:",
@@ -387,7 +438,7 @@ export default function SongsPage() {
 
       setTimeout(() => {
         setMessage("");
-      }, 3000);
+      }, 3500);
     } finally {
       setPlaylistLoading(false);
     }
@@ -614,108 +665,108 @@ export default function SongsPage() {
 
                       {openMenu ===
                         song.id && (
-                        <div
-                          onClick={(event) =>
-                            event.stopPropagation()
-                          }
-                          className="absolute right-0 top-11 z-50 w-64 overflow-hidden rounded-xl border border-white/10 bg-zinc-950 p-1 shadow-2xl"
-                        >
-                          {/* Play */}
-
-                          <button
-                            onClick={() => {
-                              playSong(
-                                song,
-                                filteredSongs
-                              );
-
-                              setOpenMenu(
-                                null
-                              );
-                            }}
-                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-white/10"
+                          <div
+                            onClick={(event) =>
+                              event.stopPropagation()
+                            }
+                            className="absolute right-0 top-11 z-50 w-64 overflow-hidden rounded-xl border border-white/10 bg-zinc-950 p-1 shadow-2xl"
                           >
-                            <Play
-                              size={16}
-                              fill="currentColor"
-                            />
+                            {/* Play */}
 
-                            Play
-                          </button>
+                            <button
+                              onClick={() => {
+                                playSong(
+                                  song,
+                                  filteredSongs
+                                );
 
-                          {/* Add to playlist */}
+                                setOpenMenu(
+                                  null
+                                );
+                              }}
+                              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-white/10"
+                            >
+                              <Play
+                                size={16}
+                                fill="currentColor"
+                              />
 
-                          <div className="px-3 pb-1 pt-3 text-xs font-medium uppercase tracking-wider text-zinc-600">
-                            Add to playlist
-                          </div>
+                              Play
+                            </button>
 
-                          {playlists
-                            .filter(
-                              (playlist) =>
-                                !playlist.readonly
-                            )
-                            .map(
-                              (playlist) => (
-                                <button
-                                  key={
-                                    playlist.id
-                                  }
-                                  disabled={
-                                    playlistLoading
-                                  }
-                                  onClick={() =>
-                                    addToPlaylist(
-                                      playlist.id,
-                                      song
-                                    )
-                                  }
-                                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-zinc-300 hover:bg-white/10 disabled:opacity-50"
-                                >
-                                  <ListPlus
-                                    size={16}
-                                  />
+                            {/* Add to playlist */}
 
-                                  <span className="truncate">
-                                    {
-                                      playlist.name
-                                    }
-                                  </span>
-                                </button>
+                            <div className="px-3 pb-1 pt-3 text-xs font-medium uppercase tracking-wider text-zinc-600">
+                              Add to playlist
+                            </div>
+
+                            {playlists
+                              .filter(
+                                (playlist) =>
+                                  !playlist.readonly
                               )
-                            )}
+                              .map(
+                                (playlist) => (
+                                  <button
+                                    key={
+                                      playlist.id
+                                    }
+                                    disabled={
+                                      playlistLoading
+                                    }
+                                    onClick={() =>
+                                      addToPlaylist(
+                                        playlist.id,
+                                        song
+                                      )
+                                    }
+                                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-zinc-300 hover:bg-white/10 disabled:opacity-50"
+                                  >
+                                    <ListPlus
+                                      size={16}
+                                    />
 
-                          {/* New playlist */}
+                                    <span className="truncate">
+                                      {
+                                        playlist.name
+                                      }
+                                    </span>
+                                  </button>
+                                )
+                              )}
 
-                          <div className="my-1 border-t border-white/10" />
+                            {/* New playlist */}
 
-                          <button
-                            onClick={() => {
-                              setSelectedSong(
-                                song
-                              );
+                            <div className="my-1 border-t border-white/10" />
 
-                              setNewPlaylistName(
-                                ""
-                              );
+                            <button
+                              onClick={() => {
+                                setSelectedSong(
+                                  song
+                                );
 
-                              setShowCreatePlaylist(
-                                true
-                              );
+                                setNewPlaylistName(
+                                  ""
+                                );
 
-                              setOpenMenu(
-                                null
-                              );
-                            }}
-                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-zinc-300 hover:bg-white/10"
-                          >
-                            <Plus
-                              size={16}
-                            />
+                                setShowCreatePlaylist(
+                                  true
+                                );
 
-                            New playlist
-                          </button>
-                        </div>
-                      )}
+                                setOpenMenu(
+                                  null
+                                );
+                              }}
+                              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-zinc-300 hover:bg-white/10"
+                            >
+                              <Plus
+                                size={16}
+                              />
+
+                              New playlist
+                            </button>
+                          </div>
+                        )}
                     </div>
                   </div>
                 )
