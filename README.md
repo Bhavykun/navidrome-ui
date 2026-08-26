@@ -1,8 +1,146 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Northstar
+
+A modern web frontend for [Navidrome](https://www.navidrome.org/), built with Next.js. Browse your music library, play songs, manage queues, and organize playlists from a responsive desktop and mobile interface.
+
+## Features
+
+- Browse songs, albums, artists, and playlists
+- Search across the complete music library
+- Play albums, playlists, artists, or individual songs
+- Persistent audio player across route changes
+- Queue management with play next, remove, clear, shuffle, and repeat
+- Seek and volume controls
+- Create, rename, and delete playlists
+- Add individual songs or complete albums to playlists
+- Remove playlist songs without changing the player queue
+- Responsive desktop sidebar and mobile navigation
+- Lazy-loaded artwork with fallbacks
+- Navidrome credentials kept server-side
+
+## Requirements
+
+- Node.js 20 or newer
+- npm
+- A running Navidrome server
+- A Navidrome user with access to the music library
+
 ## Getting Started
 
-First, run the development server:
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/<your-username>/<your-repository>.git
+cd navidrome-ui
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure Navidrome
+
+Create `.env.local` in the project root:
+
+```env
+NAVIDROME_URL=http://localhost:4533
+NAVIDROME_USER=your-navidrome-username
+NAVIDROME_PASSWORD=your-navidrome-password
+```
+
+`NAVIDROME_URL` should be the Navidrome origin without a trailing API path. For example:
+
+```env
+NAVIDROME_URL=https://music.example.com
+```
+
+Never commit `.env.local` or expose these values in client-side code.
+
+### 4. Start development
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). If port `3000` is busy, Next.js reports the alternate port it selects.
+
+## Production
+
+```bash
+npm run build
+npm run start
+```
+
+The production server also requires the three Navidrome environment variables.
+
+## Available Scripts
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the development server with webpack |
+| `npm run build` | Create a production build |
+| `npm run start` | Start the production server |
+| `npm run lint` | Run ESLint |
+
+## Application Routes
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Home dashboard |
+| `/songs` | Searchable song library and queue actions |
+| `/albums` | Album library and album playlist actions |
+| `/album/[id]` | Album details and song actions |
+| `/artists` | Artist library |
+| `/artist/[id]` | Artist details and albums |
+| `/playlists` | Playlist library |
+| `/playlists/[id]` | Playlist details and management |
+| `/search` | Global library search |
+
+## Architecture
+
+The project uses the Next.js App Router with React client components for interactive library and playback features.
+
+- `src/app/`: Pages and server-side API proxy routes
+- `src/components/`: Shared navigation, artwork, and player UI
+- `src/context/PlayerContext.tsx`: Persistent audio session and queue state
+- `src/app/api/navidrome/`: Server-side Subsonic/Navidrome proxy endpoints
+- `public/`: Static assets
+
+The browser communicates with local `/api/navidrome/*` routes. Those routes call Navidrome using `.env.local`, so the password is not sent to the browser.
+
+## Playback Notes
+
+The audio element is created once by `PlayerProvider` and survives client-side navigation. Adding, removing, shuffling, or clearing queue entries does not replace the active audio source. Only an explicit play action changes the stream URL.
+
+The stream proxy forwards HTTP range requests so seeking works with supported Navidrome media formats.
+
+## Troubleshooting
+
+### Missing Navidrome configuration
+
+Confirm that `.env.local` exists in the project root and contains all three variables. Restart the development server after changing environment variables.
+
+### Cannot connect to Navidrome
+
+Check that Navidrome is running and reachable from the machine running Next.js. Verify the URL, username, password, and reverse-proxy or firewall rules.
+
+### Browser tab still shows the old icon
+
+Browsers cache favicons aggressively. Hard refresh the page or close and reopen the tab after restarting the development server.
+
+## Security
+
+- Keep Navidrome credentials in server-only environment variables.
+- Do not commit `.env.local`.
+- Use HTTPS when exposing the application outside a trusted local network.
+- Put authentication in front of the application before deploying it publicly.
+
+## License
+
+No license has been specified for this repository yet. Add a license before distributing the project publicly.
 
 ```bash
 npm run dev
