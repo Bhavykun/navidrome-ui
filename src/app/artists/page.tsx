@@ -19,6 +19,7 @@ export default function ArtistsPage() {
 
     const [artists, setArtists] = useState<Artist[]>([]);
     const [search, setSearch] = useState("");
+    const [sort, setSort] = useState("name");
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -65,15 +66,22 @@ export default function ArtistsPage() {
         loadArtists();
     }, []);
 
-    const filteredArtists = artists.filter(
-        (artist) =>
+    const filteredArtists = artists
+        .filter((artist) =>
             artist.name
                 .toLowerCase()
                 .includes(search.toLowerCase().trim())
-    );
+        )
+        .sort((first, second) => {
+            if (sort === "albums") {
+                return (second.albumCount ?? 0) - (first.albumCount ?? 0);
+            }
+
+            return first.name.localeCompare(second.name);
+        });
 
     return (
-        <main className="min-h-screen bg-black pb-32 text-white">
+        <main className="min-h-screen bg-black pb-32 text-white md:ml-64">
 
             {/* Header */}
 
@@ -101,7 +109,19 @@ export default function ArtistsPage() {
                             </p>
                         </div>
 
-                        <div className="relative w-full md:w-96">
+                        <div className="flex w-full flex-col gap-2 sm:flex-row md:w-auto">
+
+                            <select
+                                value={sort}
+                                onChange={(event) => setSort(event.target.value)}
+                                className="rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-sm text-zinc-300 outline-none focus:border-[#c7f36b]"
+                                aria-label="Sort artists"
+                            >
+                                <option value="name" className="bg-zinc-900">Name</option>
+                                <option value="albums" className="bg-zinc-900">Most albums</option>
+                            </select>
+
+                            <div className="relative w-full md:w-80">
 
                             <Search
                                 size={18}
@@ -118,6 +138,7 @@ export default function ArtistsPage() {
                                 className="w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-10 pr-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-white/20"
                             />
 
+                            </div>
                         </div>
 
                     </div>

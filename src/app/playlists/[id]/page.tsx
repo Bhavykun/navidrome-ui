@@ -13,8 +13,10 @@ import {
 import {
   ArrowLeft,
   ListPlus,
+  Pencil,
   Play,
   Plus,
+  Trash2,
 } from "lucide-react";
 
 import {
@@ -48,6 +50,28 @@ export default function PlaylistPage() {
   const [loading, setLoading] =
     useState(true);
 
+  const [busy, setBusy] =
+    useState(false);
+
+  const [editing, setEditing] =
+    useState(false);
+
+  const [playlistName, setPlaylistName] =
+    useState("");
+
+  const [message, setMessage] =
+    useState("");
+
+  const [error, setError] =
+    useState("");
+
+  const [confirmation, setConfirmation] =
+    useState<
+      | { type: "deletePlaylist" }
+      | { type: "removeSong"; index: number }
+      | null
+    >(null);
+
   useEffect(() => {
     async function loadPlaylist() {
       try {
@@ -75,9 +99,8 @@ export default function PlaylistPage() {
             "subsonic-response"
           ]?.playlist;
 
-        setPlaylist(
-          result ?? null
-        );
+        setPlaylist(result ?? null);
+        setPlaylistName(result?.name ?? "");
       } catch (error) {
         console.error(
           "Playlist loading error:",
@@ -109,6 +132,103 @@ export default function PlaylistPage() {
         .padStart(2, "0");
 
     return `${minutes}:${secs}`;
+  }
+
+  function showMessage(nextMessage: string) {
+    setMessage(nextMessage);
+    window.setTimeout(() => setMessage(""), 2500);
+  }
+
+  async function renamePlaylist() {
+    if (!playlist || !playlistName.trim()) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      setError("");
+      const response = await fetch("/api/navidrome/playlist", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playlistId: playlist.id,
+          name: playlistName.trim(),
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to rename playlist");
+      }
+
+      setPlaylist({ ...playlist, name: playlistName.trim() });
+      setEditing(false);
+      showMessage("Playlist renamed");
+    } catch (renameError) {
+      setError(renameError instanceof Error ? renameError.message : "Failed to rename playlist");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deletePlaylist() {
+    if (!playlist) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      setError("");
+      const response = await fetch("/api/navidrome/playlists", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: playlist.id }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete playlist");
+      }
+
+      router.push("/playlists");
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Failed to delete playlist");
+      setBusy(false);
+    }
+  }
+
+  async function removeSong(songIndex: number) {
+    if (!playlist) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      setError("");
+      const response = await fetch("/api/navidrome/playlist", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playlistId: playlist.id,
+          songIndexes: [songIndex],
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to remove song");
+      }
+
+      setPlaylist({
+        ...playlist,
+        entry: (playlist.entry ?? []).filter((_, index) => index !== songIndex),
+      });
+      showMessage("Removed from playlist");
+    } catch (removeError) {
+      setError(removeError instanceof Error ? removeError.message : "Failed to remove song");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (loading) {
@@ -152,7 +272,7 @@ export default function PlaylistPage() {
     songs[0];
 
   return (
-    <main className="min-h-screen bg-black pb-32 text-white">
+    <main className="min-h-screen bg-black pb-32 text-white md:ml-64">
 
       {/* Header */}
 
@@ -203,9 +323,30 @@ export default function PlaylistPage() {
             Playlist
           </p>
 
-          <h1 className="text-4xl font-bold md:text-6xl">
-            {playlist.name}
-          </h1>
+          {editing ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                renamePlaylist();
+              }}
+              className="flex max-w-xl items-center gap-2"
+            >
+              <input
+                autoFocus
+                value={playlistName}
+                onChange={(event) => setPlaylistName(event.target.value)}
+                className="min-w-0 rounded-md border border-white/20 bg-white/10 px-3 py-2 text-3xl font-bold text-white outline-none md:text-5xl"
+                aria-label="Playlist name"
+              />
+              <button type="submit" disabled={busy} className="rounded-md bg-[#c7f36b] px-3 py-2 text-sm font-semibold text-black disabled:opacity-40">
+                Save
+              </button>
+            </form>
+          ) : (
+            <h1 className="text-4xl font-bold md:text-6xl">
+              {playlist.name}
+            </h1>
+          )}
 
           <p className="mt-4 text-sm text-zinc-500">
             {songs.length}{" "}
@@ -246,6 +387,26 @@ export default function PlaylistPage() {
             />
           </button>
 
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            disabled={busy}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-zinc-400 hover:bg-white/10 hover:text-white disabled:opacity-40"
+            title="Rename playlist"
+          >
+            <Pencil size={17} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setConfirmation({ type: "deletePlaylist" })}
+            disabled={busy}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-zinc-400 hover:bg-red-400/10 hover:text-red-300 disabled:opacity-40"
+            title="Delete playlist"
+          >
+            <Trash2 size={17} />
+          </button>
+
           {/* Add playlist */}
 
           <button
@@ -264,6 +425,18 @@ export default function PlaylistPage() {
           </button>
 
         </div>
+
+        {message && (
+          <p className="mx-6 mb-4 rounded-md border border-[#c7f36b]/20 bg-[#c7f36b]/10 px-4 py-3 text-sm text-[#dafa96] md:mx-10">
+            {message}
+          </p>
+        )}
+
+        {error && (
+          <p className="mx-6 mb-4 rounded-md border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200 md:mx-10">
+            {error}
+          </p>
+        )}
 
         {/* Songs */}
 
@@ -326,7 +499,7 @@ export default function PlaylistPage() {
 
                 {/* Actions */}
 
-                <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
 
                   <button
                     type="button"
@@ -339,6 +512,16 @@ export default function PlaylistPage() {
                     <ListPlus
                       size={17}
                     />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setConfirmation({ type: "removeSong", index })}
+                    disabled={busy}
+                    className="rounded-full p-2 text-zinc-500 hover:bg-red-400/10 hover:text-red-300 disabled:opacity-40"
+                    title="Remove from playlist"
+                  >
+                    <Trash2 size={17} />
                   </button>
 
                   <button
@@ -371,6 +554,51 @@ export default function PlaylistPage() {
         </div>
 
       </section>
+
+      {confirmation && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirmation-title"
+            className="w-full max-w-md rounded-xl border border-white/10 bg-[#151916] p-6 shadow-2xl"
+          >
+            <h2 id="confirmation-title" className="text-lg font-semibold text-white">
+              {confirmation.type === "deletePlaylist" ? "Delete playlist?" : "Remove song?"}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-400">
+              {confirmation.type === "deletePlaylist"
+                ? `This will permanently delete "${playlist.name}".`
+                : "This will remove the song from this playlist only. It will stay in your library and player queue."}
+            </p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmation(null)}
+                className="rounded-md border border-white/10 px-4 py-2 text-sm text-zinc-300 hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  const action = confirmation;
+                  setConfirmation(null);
+                  if (action.type === "deletePlaylist") {
+                    deletePlaylist();
+                  } else {
+                    removeSong(action.index);
+                  }
+                }}
+                className="rounded-md bg-red-400 px-4 py-2 text-sm font-semibold text-black hover:bg-red-300 disabled:opacity-40"
+              >
+                {confirmation.type === "deletePlaylist" ? "Delete" : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </main>
   );

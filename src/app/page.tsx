@@ -76,60 +76,8 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 hidden h-screen w-60 border-r border-white/10 bg-zinc-950 p-6 md:block">
-        <h1 className="mb-10 text-2xl font-bold">
-          🎵 My Music
-        </h1>
-
-        <nav className="space-y-2">
-
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            className="block w-full rounded-lg px-4 py-3 text-left text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            🏠 Home
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.push("/songs")}
-            className="block w-full rounded-lg px-4 py-3 text-left text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            🎵 Songs
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.push("/albums")}
-            className="block w-full rounded-lg px-4 py-3 text-left text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            💿 Albums
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.push("/artists")}
-            className="block w-full rounded-lg px-4 py-3 text-left text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            👤 Artists
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.push("/playlists")}
-            className="block w-full rounded-lg px-4 py-3 text-left text-zinc-400 transition hover:bg-white/10 hover:text-white"
-          >
-            📋 Playlists
-          </button>
-
-        </nav>
-      </aside>
-
-      {/* Main content */}
-      <section className="pb-28 md:ml-60">
+    <main className="min-h-screen bg-black text-white md:ml-64">
+      <section className="pb-28">
         {/* Header */}
         <header className="sticky top-0 z-10 border-b border-white/10 bg-black/80 px-6 py-5 backdrop-blur">
           <div className="flex items-center justify-between">
@@ -137,9 +85,6 @@ export default function Home() {
               Your Music
             </h2>
 
-            <button className="rounded-full bg-white/10 px-5 py-2 text-sm text-zinc-300 transition hover:bg-white/20">
-              🔍 Search
-            </button>
           </div>
         </header>
 

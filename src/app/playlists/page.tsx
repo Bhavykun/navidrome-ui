@@ -37,6 +37,9 @@ export default function PlaylistsPage() {
   const [search, setSearch] =
     useState("");
 
+  const [sort, setSort] =
+    useState("name");
+
   const [loading, setLoading] =
     useState(true);
 
@@ -78,14 +81,23 @@ export default function PlaylistsPage() {
     loadPlaylists();
   }, []);
 
-  const filteredPlaylists =
-    playlists.filter((playlist) =>
+  const filteredPlaylists = playlists
+    .filter((playlist) =>
       playlist.name
         .toLowerCase()
-        .includes(
-          search.toLowerCase()
-        )
-    );
+        .includes(search.toLowerCase())
+    )
+    .sort((first, second) => {
+      if (sort === "songs") {
+        return (second.songCount ?? 0) - (first.songCount ?? 0);
+      }
+
+      if (sort === "duration") {
+        return (second.duration ?? 0) - (first.duration ?? 0);
+      }
+
+      return first.name.localeCompare(second.name);
+    });
 
   function formatDuration(
     seconds?: number
@@ -144,7 +156,7 @@ export default function PlaylistsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black pb-32 text-white">
+    <main className="min-h-screen bg-black pb-32 text-white md:ml-64">
 
       {/* Header */}
 
@@ -175,7 +187,20 @@ export default function PlaylistsPage() {
               </p>
             </div>
 
-            <div className="relative w-full md:w-96">
+            <div className="flex w-full flex-col gap-2 sm:flex-row md:w-auto">
+
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-sm text-zinc-300 outline-none focus:border-[#c7f36b]"
+                aria-label="Sort playlists"
+              >
+                <option value="name" className="bg-zinc-900">Name</option>
+                <option value="songs" className="bg-zinc-900">Most songs</option>
+                <option value="duration" className="bg-zinc-900">Longest</option>
+              </select>
+
+              <div className="relative w-full md:w-80">
 
               <Search
                 size={18}
@@ -193,6 +218,7 @@ export default function PlaylistsPage() {
                 className="w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-10 pr-4 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-white/20"
               />
 
+              </div>
             </div>
           </div>
         </div>

@@ -33,6 +33,8 @@ type PlayerContextType = {
 
   isPlaying: boolean;
 
+  playbackError: string | null;
+
   progress: number;
   duration: number;
 
@@ -160,6 +162,9 @@ export function PlayerProvider({
   const [isPlaying, setIsPlaying] =
     useState(false);
 
+  const [playbackError, setPlaybackError] =
+    useState<string | null>(null);
+
   const [progress, setProgress] =
     useState(0);
 
@@ -215,6 +220,7 @@ export function PlayerProvider({
     }
 
     setCurrentSong(song);
+    setPlaybackError(null);
 
     setProgress(0);
 
@@ -241,6 +247,7 @@ export function PlayerProvider({
         );
 
         setIsPlaying(false);
+        setPlaybackError("Playback could not start. Check the Navidrome connection.");
       });
   }
 
@@ -257,6 +264,8 @@ export function PlayerProvider({
     audioRef.current =
       audio;
 
+    audio.preload = "metadata";
+    audio.setAttribute("playsinline", "true");
     audio.volume = 1;
 
     const handleTimeUpdate =
@@ -287,6 +296,12 @@ export function PlayerProvider({
     const handlePause =
       () => {
         setIsPlaying(false);
+      };
+
+    const handleError =
+      () => {
+        setIsPlaying(false);
+        setPlaybackError("Unable to play this song.");
       };
 
     /*
@@ -389,6 +404,11 @@ export function PlayerProvider({
     );
 
     audio.addEventListener(
+      "error",
+      handleError
+    );
+
+    audio.addEventListener(
       "ended",
       handleEnded
     );
@@ -414,6 +434,11 @@ export function PlayerProvider({
       audio.removeEventListener(
         "pause",
         handlePause
+      );
+
+      audio.removeEventListener(
+        "error",
+        handleError
       );
 
       audio.removeEventListener(
@@ -753,41 +778,22 @@ export function PlayerProvider({
   }
 
   /*
-   * CLEAR EVERYTHING.
+   * Remove upcoming songs while keeping
+   * the active song and audio session alive.
    */
   function clearQueue() {
-    const audio =
-      audioRef.current;
+    const current = currentSong;
 
-    if (audio) {
-      audio.pause();
-
-      audio.removeAttribute(
-        "src"
-      );
-
-      audio.load();
+    if (!current) {
+      return;
     }
 
-    queueRef.current = [];
+    queueRef.current = [current];
+    originalQueueRef.current = [current];
+    currentIndexRef.current = 0;
 
-    originalQueueRef.current =
-      [];
-
-    currentIndexRef.current =
-      0;
-
-    setQueue([]);
-
+    setQueue([current]);
     setCurrentIndex(0);
-
-    setCurrentSong(null);
-
-    setIsPlaying(false);
-
-    setProgress(0);
-
-    setDuration(0);
   }
 
   /*
@@ -1144,6 +1150,8 @@ export function PlayerProvider({
         currentIndex,
 
         isPlaying,
+
+        playbackError,
 
         progress,
         duration,

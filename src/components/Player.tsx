@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 
 import { usePlayer } from "@/context/PlayerContext";
+import Artwork from "@/components/Artwork";
 
 function formatTime(
   seconds: number
@@ -52,6 +53,7 @@ export default function Player() {
     currentIndex,
 
     isPlaying,
+    playbackError,
 
     progress,
     duration,
@@ -101,11 +103,11 @@ export default function Player() {
       ================================= */}
 
       {showQueue && (
-        <div className="fixed bottom-[92px] right-4 z-[60] w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-white/10 bg-zinc-950 shadow-2xl">
+        <div className="fixed bottom-[96px] right-4 z-[60] w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#101310]/98 shadow-[0_20px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl">
 
           {/* Header */}
 
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
 
             <div>
               <h2 className="font-semibold">
@@ -157,7 +159,7 @@ export default function Player() {
 
           {/* Queue songs */}
 
-          <div className="max-h-[420px] overflow-y-auto">
+          <div className="max-h-[min(420px,55vh)] overflow-y-auto">
 
             {queue.length === 0 ? (
               <div className="px-4 py-12 text-center text-sm text-zinc-600">
@@ -196,22 +198,10 @@ export default function Player() {
 
                         <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-zinc-900">
 
-                          <img
-                            src={
-                              song.coverArt
-                                ? `/api/navidrome/cover?id=${encodeURIComponent(
-                                    song.coverArt
-                                  )}`
-                                : "/album-placeholder.jpg"
-                            }
-                            onError={(
-                              event
-                            ) => {
-                              event.currentTarget.src =
-                                "/album-placeholder.jpg";
-                            }}
+                          <Artwork
                             alt=""
-                            className="h-full w-full object-cover"
+                            coverArt={song.coverArt}
+                            className="h-full w-full"
                           />
 
                         </div>
@@ -279,39 +269,27 @@ export default function Player() {
           PLAYER
       ================================= */}
 
-      <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-zinc-950/95 px-4 py-3 text-white shadow-2xl backdrop-blur-xl">
+      <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-[#0d100e]/96 px-3 py-3 text-white shadow-[0_-12px_40px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:px-5">
 
         <div className="mx-auto max-w-[1600px]">
 
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-5">
 
             {/* Artwork */}
 
-            <div className="hidden h-14 w-14 shrink-0 overflow-hidden rounded-md bg-zinc-900 sm:block">
+            <div className="hidden h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-900 shadow-lg sm:block">
 
-              <img
-                src={
-                  currentSong.coverArt
-                    ? `/api/navidrome/cover?id=${encodeURIComponent(
-                        currentSong.coverArt
-                      )}`
-                    : "/album-placeholder.jpg"
-                }
-                onError={(
-                  event
-                ) => {
-                  event.currentTarget.src =
-                    "/album-placeholder.jpg";
-                }}
+              <Artwork
                 alt={currentSong.album}
-                className="h-full w-full object-cover"
+                coverArt={currentSong.coverArt}
+                className="h-full w-full"
               />
 
             </div>
 
             {/* Song information */}
 
-            <div className="min-w-0 w-32 sm:w-44 md:w-60">
+            <div className="min-w-0 w-28 sm:w-44 md:w-60">
 
               <p className="truncate text-sm font-medium">
                 {currentSong.title}
@@ -321,13 +299,24 @@ export default function Player() {
                 {currentSong.artist}
               </p>
 
+              {playbackError && (
+                <button
+                  type="button"
+                  onClick={() => playQueueSong(currentIndex)}
+                  className="truncate text-left text-[11px] text-red-300 hover:text-red-200"
+                  title="Retry playback"
+                >
+                  {playbackError} Retry
+                </button>
+              )}
+
             </div>
 
             {/* Main controls */}
 
             <div className="flex flex-1 flex-col items-center gap-1">
 
-              <div className="flex items-center gap-3 sm:gap-5">
+              <div className="flex items-center gap-3 sm:gap-6">
 
                 {/* Shuffle */}
 
@@ -380,7 +369,7 @@ export default function Player() {
                       ? "Pause"
                       : "Play"
                   }
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black transition hover:scale-105"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-[#c7f36b] text-black shadow-[0_0_22px_rgba(199,243,107,0.18)] transition hover:scale-105 hover:bg-[#dafa96]"
                 >
                   {isPlaying ? (
                     <Pause
@@ -462,6 +451,9 @@ export default function Player() {
                     duration ||
                       0
                   )}
+                  style={{
+                    "--range-progress": `${duration ? Math.min(100, (progress / duration) * 100) : 0}%`,
+                  } as React.CSSProperties}
                   onChange={(
                     event
                   ) =>
@@ -473,7 +465,7 @@ export default function Player() {
                       )
                     )
                   }
-                  className="h-1 flex-1 cursor-pointer accent-white"
+                  className="player-range h-3 flex-1 cursor-pointer"
                 />
 
                 <span className="w-10 text-[11px] text-zinc-500">
@@ -514,7 +506,7 @@ export default function Player() {
 
               {/* Volume */}
 
-              <div className="hidden items-center gap-2 md:flex">
+              <div className="hidden items-center gap-2 lg:flex">
 
                 <button
                   type="button"
@@ -545,6 +537,9 @@ export default function Player() {
                   max="1"
                   step="0.01"
                   value={volume}
+                  style={{
+                    "--range-progress": `${volume * 100}%`,
+                  } as React.CSSProperties}
                   onChange={(
                     event
                   ) =>
@@ -556,7 +551,7 @@ export default function Player() {
                       )
                     )
                   }
-                  className="w-20 cursor-pointer accent-white"
+                  className="player-range h-3 w-20 cursor-pointer"
                 />
 
               </div>
@@ -586,6 +581,9 @@ export default function Player() {
                 progress,
                 duration || 0
               )}
+              style={{
+                "--range-progress": `${duration ? Math.min(100, (progress / duration) * 100) : 0}%`,
+              } as React.CSSProperties}
               onChange={(
                 event
               ) =>
@@ -597,7 +595,7 @@ export default function Player() {
                   )
                 )
               }
-              className="h-1 flex-1 accent-white"
+              className="player-range h-3 flex-1 cursor-pointer"
             />
 
             <span className="text-[10px] text-zinc-500">

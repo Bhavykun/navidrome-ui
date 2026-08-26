@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { usePlayer } from "@/context/PlayerContext";
+import Artwork from "@/components/Artwork";
 
 type Song = {
   id: string;
@@ -59,7 +60,11 @@ function formatDuration(seconds: number) {
 export default function SongsPage() {
   const router = useRouter();
 
-  const { playSong } = usePlayer();
+  const {
+    playSong,
+    addToQueue,
+    playNext,
+  } = usePlayer();
 
   const [songs, setSongs] = useState<Song[]>([]);
   const [playlists, setPlaylists] =
@@ -67,6 +72,9 @@ export default function SongsPage() {
 
   const [search, setSearch] =
     useState("");
+
+  const [sort, setSort] =
+    useState("title");
 
   const [loading, setLoading] =
     useState(true);
@@ -177,11 +185,11 @@ export default function SongsPage() {
     const query =
       search.trim().toLowerCase();
 
-    if (!query) {
-      return songs;
-    }
+    const result = songs.filter((song) => {
+      if (!query) {
+        return true;
+      }
 
-    return songs.filter((song) => {
       return (
         song.title
           ?.toLowerCase()
@@ -194,7 +202,23 @@ export default function SongsPage() {
           .includes(query)
       );
     });
-  }, [songs, search]);
+
+    return result.sort((first, second) => {
+      if (sort === "artist") {
+        return first.artist.localeCompare(second.artist);
+      }
+
+      if (sort === "album") {
+        return first.album.localeCompare(second.album);
+      }
+
+      if (sort === "duration") {
+        return (second.duration ?? 0) - (first.duration ?? 0);
+      }
+
+      return first.title.localeCompare(second.title);
+    });
+  }, [songs, search, sort]);
 
   /*
    * Add song to playlist
@@ -445,10 +469,10 @@ export default function SongsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black pb-32 text-white">
+    <main className="min-h-screen bg-[#080a09] pb-32 text-white md:ml-64">
       {/* Header */}
 
-      <header className="sticky top-0 z-10 border-b border-white/10 bg-black/90 px-6 py-4 backdrop-blur">
+      <header className="sticky top-0 z-10 border-b border-white/10 bg-[#080a09]/90 px-6 py-5 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl">
           <button
             onClick={() =>
@@ -462,7 +486,11 @@ export default function SongsPage() {
 
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-bold">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#c7f36b]">
+                Your library
+              </p>
+
+              <h1 className="text-3xl font-bold tracking-tight">
                 Songs
               </h1>
 
@@ -474,7 +502,20 @@ export default function SongsPage() {
               </p>
             </div>
 
-            <div className="relative w-full md:w-96">
+            <div className="flex w-full flex-col gap-2 sm:flex-row md:w-auto">
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value)}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-sm text-zinc-300 outline-none focus:border-[#c7f36b]"
+                aria-label="Sort songs"
+              >
+                <option value="title" className="bg-zinc-900">Title</option>
+                <option value="artist" className="bg-zinc-900">Artist</option>
+                <option value="album" className="bg-zinc-900">Album</option>
+                <option value="duration" className="bg-zinc-900">Longest</option>
+              </select>
+
+              <div className="relative w-full md:w-80">
               <Search
                 size={18}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
@@ -490,6 +531,7 @@ export default function SongsPage() {
                 placeholder="Search songs, artists, albums..."
                 className="w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-white/20 focus:bg-white/10"
               />
+              </div>
             </div>
           </div>
         </div>
@@ -511,6 +553,25 @@ export default function SongsPage() {
       {/* Content */}
 
       <section className="mx-auto max-w-7xl px-6 py-6">
+        {!loading && filteredSongs.length > 0 && (
+          <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <button
+              type="button"
+              onClick={() => playSong(filteredSongs[0], filteredSongs)}
+              className="rounded-full bg-[#c7f36b] px-4 py-2 text-sm font-semibold text-black shadow-[0_0_18px_rgba(199,243,107,0.12)] transition hover:bg-[#dafa96]"
+            >
+              Play all
+            </button>
+            <button
+              type="button"
+              onClick={() => addToQueue(filteredSongs)}
+              className="rounded-full border border-white/10 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white/10 hover:text-white"
+            >
+              Add all to queue
+            </button>
+            <span className="ml-1 text-xs text-zinc-600">Sorted by {sort}</span>
+          </div>
+        )}
         {loading ? (
           <div className="py-20 text-center text-zinc-500">
             Loading songs...
@@ -537,7 +598,7 @@ export default function SongsPage() {
           <div>
             {/* Table header */}
 
-            <div className="mb-2 hidden grid-cols-[40px_1fr_1fr_1fr_80px_40px] items-center gap-4 border-b border-white/10 px-4 pb-3 text-xs uppercase tracking-wider text-zinc-600 md:grid">
+            <div className="mb-2 hidden grid-cols-[40px_1fr_1fr_1fr_80px_40px] items-center gap-4 px-4 pb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600 md:grid">
               <span>#</span>
               <span>Title</span>
               <span>Artist</span>
@@ -552,12 +613,12 @@ export default function SongsPage() {
 
             {/* Songs */}
 
-            <div className="divide-y divide-white/5">
+            <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] divide-y divide-white/5">
               {filteredSongs.map(
                 (song, index) => (
                   <div
                     key={song.id}
-                    className="group relative grid grid-cols-[40px_1fr_auto] items-center gap-3 rounded-lg px-4 py-3 transition hover:bg-white/5 md:grid-cols-[40px_1fr_1fr_1fr_80px_40px]"
+                    className="group relative grid grid-cols-[28px_minmax(0,1fr)_48px_36px] items-center gap-2 px-3 py-3.5 transition hover:bg-white/[0.07] sm:grid-cols-[40px_minmax(0,1fr)_56px_40px] sm:gap-3 sm:px-4 md:grid-cols-[40px_1fr_1fr_1fr_80px_40px]"
                   >
                     {/* Number / Play */}
 
@@ -594,21 +655,11 @@ export default function SongsPage() {
                       }
                       className="flex min-w-0 items-center gap-3 text-left"
                     >
-                      <div className="hidden h-10 w-10 shrink-0 overflow-hidden rounded bg-zinc-900 sm:block">
-                        {song.coverArt ? (
-                          <img
-                            src={`/api/navidrome/cover?id=${encodeURIComponent(
-                              song.coverArt
-                            )}`}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-zinc-600">
-                            ♪
-                          </div>
-                        )}
-                      </div>
+                      <Artwork
+                        alt=""
+                        coverArt={song.coverArt}
+                        className="hidden h-10 w-10 shrink-0 sm:block"
+                      />
 
                       <div className="min-w-0">
                         <p className="truncate font-medium text-white">
@@ -692,6 +743,30 @@ export default function SongsPage() {
                               />
 
                               Play
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                playNext(song);
+                                setOpenMenu(null);
+                              }}
+                              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-white/10"
+                            >
+                              <ListPlus size={16} />
+                              Play next
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                addToQueue(song);
+                                setOpenMenu(null);
+                                setMessage(`Added "${song.title}" to queue`);
+                                setTimeout(() => setMessage(""), 2500);
+                              }}
+                              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-white/10"
+                            >
+                              <Plus size={16} />
+                              Add to queue
                             </button>
 
                             {/* Add to playlist */}

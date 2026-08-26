@@ -189,7 +189,7 @@ export default function ArtistPage() {
     artist.album ?? [];
 
   return (
-    <main className="min-h-screen bg-black pb-32 text-white">
+    <main className="min-h-screen bg-black pb-32 text-white md:ml-64">
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-white/10 bg-black/80 px-6 py-4 backdrop-blur">
         <button
