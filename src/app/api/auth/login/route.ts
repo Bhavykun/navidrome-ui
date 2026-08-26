@@ -20,9 +20,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Enter a valid HTTP or HTTPS Navidrome URL" }, { status: 400 });
     }
 
+    if (!process.env.AUTH_SECRET) {
+      return NextResponse.json({ error: "Server authentication is not configured: AUTH_SECRET is missing in Vercel" }, { status: 500 });
+    }
+
     const params = new URLSearchParams({ u: username, p: password, v: "1.16.1", c: "northstar", f: "json" });
-    const response = await fetch(`${url.origin}${url.pathname.replace(/\/$/, "")}/rest/ping.view?${params.toString()}`, { cache: "no-store" });
-    const data = await response.json();
+    let response: Response;
+    try {
+      response = await fetch(`${url.origin}${url.pathname.replace(/\/$/, "")}/rest/ping.view?${params.toString()}`, { cache: "no-store" });
+    } catch (error) {
+      console.error("Navidrome connection error:", error);
+      return NextResponse.json({ error: "Vercel could not reach Navidrome. Check that Tailscale Funnel is running and the public URL is correct." }, { status: 503 });
+    }
+
+    let data: {
+      "subsonic-response"?: {
+        status?: string;
+      };
+    };
+    try {
+      data = await response.json();
+    } catch {
+      return NextResponse.json({ error: "Navidrome returned an invalid response" }, { status: 502 });
+    }
+
     if (!response.ok || data?.["subsonic-response"]?.status !== "ok") {
       return NextResponse.json({ error: "Navidrome rejected these credentials" }, { status: 401 });
     }
