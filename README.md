@@ -63,6 +63,7 @@ NAVIDROME_URL=https://music.example.com
 
 Never commit `.env.local` or expose these values in client-side code.
 `AUTH_SECRET` is used to encrypt the login session cookie. Generate a strong random value for it and keep it private.
+The login form accepts the public Navidrome or Tailscale Funnel URL directly. Do not expose usernames or passwords through `NEXT_PUBLIC_*` variables.
 
 ### 4. Start development
 

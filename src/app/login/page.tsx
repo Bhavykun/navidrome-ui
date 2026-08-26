@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [baseUrl, setBaseUrl] = useState("http://localhost:4533");
+  const [baseUrl, setBaseUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +16,12 @@ export default function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(baseUrl.trim()) && process.env.NODE_ENV === "production") {
+      setError("Use your public Tailscale Funnel URL here, not localhost.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -48,7 +54,7 @@ export default function LoginPage() {
           <h1 className="text-2xl font-semibold">Sign in to your library</h1>
           <p className="mt-2 text-sm text-zinc-500">Use your Navidrome account to continue.</p>
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
-            <label className="block text-sm text-zinc-400">Server URL<input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://music.example.com" className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-white outline-none focus:border-[#c7f36b]" /></label>
+            <label className="block text-sm text-zinc-400">Server URL<input value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://your-device.your-tailnet.ts.net" className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-white outline-none focus:border-[#c7f36b]" /></label>
             <label className="block text-sm text-zinc-400">Username<input value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-white outline-none focus:border-[#c7f36b]" /></label>
             <label className="block text-sm text-zinc-400">Password<div className="relative mt-2"><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-3 pr-11 text-white outline-none focus:border-[#c7f36b]" /><button type="button" onClick={() => setShowPassword((current) => !current)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-2 text-zinc-500 hover:text-white" title={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
             {error && <p role="alert" className="rounded-lg border border-red-400/20 bg-red-400/10 px-3 py-3 text-sm text-red-200">{error}</p>}

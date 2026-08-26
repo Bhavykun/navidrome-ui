@@ -27,6 +27,7 @@ describe("login page", () => {
 
     const user = userEvent.setup();
     render(<LoginPage />);
+    await user.type(screen.getByLabelText("Server URL"), "https://music.example.com");
     await user.type(screen.getByLabelText("Username"), "listener");
     await user.type(screen.getByLabelText("Password"), "secret");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
@@ -44,6 +45,7 @@ describe("login page", () => {
 
     const user = userEvent.setup();
     render(<LoginPage />);
+    await user.type(screen.getByLabelText("Server URL"), "https://music.example.com");
     await user.type(screen.getByLabelText("Username"), "listener");
     await user.type(screen.getByLabelText("Password"), "wrong");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
