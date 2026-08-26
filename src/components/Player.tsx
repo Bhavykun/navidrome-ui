@@ -103,7 +103,7 @@ export default function Player() {
       ================================= */}
 
       {showQueue && (
-        <div className="fixed bottom-[96px] right-4 z-[60] w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#101310]/98 shadow-[0_20px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+        <div className="fixed bottom-[154px] right-4 z-[60] w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#101310]/98 shadow-[0_20px_70px_rgba(0,0,0,0.55)] backdrop-blur-xl md:bottom-[96px]">
 
           {/* Header */}
 
@@ -269,7 +269,7 @@ export default function Player() {
           PLAYER
       ================================= */}
 
-      <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-[#0d100e]/96 px-3 py-3 text-white shadow-[0_-12px_40px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:px-5">
+      <footer className="fixed bottom-[58px] left-0 right-0 z-50 border-t border-white/10 bg-[#0d100e]/96 px-3 py-2 text-white shadow-[0_-12px_40px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:px-5 sm:py-3 md:bottom-0">
 
         <div className="mx-auto max-w-[1600px]">
 
@@ -277,7 +277,7 @@ export default function Player() {
 
             {/* Artwork */}
 
-            <div className="hidden h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-zinc-900 shadow-lg sm:block">
+            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-zinc-900 shadow-lg sm:h-14 sm:w-14 sm:rounded-lg">
 
               <Artwork
                 alt={currentSong.album}
@@ -289,13 +289,13 @@ export default function Player() {
 
             {/* Song information */}
 
-            <div className="min-w-0 w-28 sm:w-44 md:w-60">
+            <div className="min-w-0 flex-1 sm:w-44 sm:flex-none md:w-60">
 
-              <p className="truncate text-sm font-medium">
+              <p className="truncate text-xs font-medium sm:text-sm">
                 {currentSong.title}
               </p>
 
-              <p className="truncate text-xs text-zinc-500">
+              <p className="truncate text-[11px] text-zinc-500 sm:text-xs">
                 {currentSong.artist}
               </p>
 
@@ -330,15 +330,13 @@ export default function Player() {
                       ? "Shuffle on"
                       : "Shuffle off"
                   }
-                  className={`hidden transition sm:block ${
+                  className={`block rounded-full p-1 transition sm:p-0 ${
                     shuffle
                       ? "text-white"
                       : "text-zinc-500 hover:text-white"
                   }`}
                 >
-                  <Shuffle
-                    size={18}
-                  />
+                    <Shuffle size={16} className="sm:h-[18px] sm:w-[18px]" />
                 </button>
 
                 {/* Previous */}
@@ -369,7 +367,7 @@ export default function Player() {
                       ? "Pause"
                       : "Play"
                   }
-                  className="flex h-11 w-11 items-center justify-center rounded-full bg-[#c7f36b] text-black shadow-[0_0_22px_rgba(199,243,107,0.18)] transition hover:scale-105 hover:bg-[#dafa96]"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[#c7f36b] text-black shadow-[0_0_22px_rgba(199,243,107,0.18)] transition hover:scale-105 hover:bg-[#dafa96] sm:h-11 sm:w-11"
                 >
                   {isPlaying ? (
                     <Pause
@@ -409,7 +407,7 @@ export default function Player() {
                     toggleLoop
                   }
                   title={`Loop: ${loop}`}
-                  className={`hidden transition sm:block ${
+                  className={`block rounded-full p-1 transition sm:p-0 ${
                     loop !== "off"
                       ? "text-white"
                       : "text-zinc-500 hover:text-white"
@@ -417,11 +415,13 @@ export default function Player() {
                 >
                   {loop === "one" ? (
                     <Repeat1
-                      size={18}
+                      size={16}
+                      className="sm:h-[18px] sm:w-[18px]"
                     />
                   ) : (
                     <Repeat
-                      size={18}
+                      size={16}
+                      className="sm:h-[18px] sm:w-[18px]"
                     />
                   )}
                 </button>
@@ -480,7 +480,7 @@ export default function Player() {
 
             {/* Right controls */}
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 sm:gap-3">
 
               {/* Queue */}
 
@@ -493,7 +493,7 @@ export default function Player() {
                   )
                 }
                 title="Queue"
-                className={`transition ${
+                className={`rounded-full p-1.5 transition sm:p-0 ${
                   showQueue
                     ? "text-white"
                     : "text-zinc-500 hover:text-white"

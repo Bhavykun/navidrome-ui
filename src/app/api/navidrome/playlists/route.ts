@@ -2,47 +2,15 @@ import {
   NextRequest,
   NextResponse,
 } from "next/server";
+import { getNavidromeConfig } from "@/lib/auth";
 
-function getConfig() {
-  const baseUrl =
-    process.env.NAVIDROME_URL;
-
-  const username =
-    process.env.NAVIDROME_USER;
-
-  const password =
-    process.env.NAVIDROME_PASSWORD;
-
-  if (
-    !baseUrl ||
-    !username ||
-    !password
-  ) {
-    throw new Error(
-      "Missing Navidrome configuration"
-    );
-  }
-
-  return {
-    baseUrl,
-    username,
-    password,
-  };
+async function getConfig() {
+  return getNavidromeConfig();
 }
 
-function baseParams() {
-  const {
-    username,
-    password,
-  } = getConfig();
-
-  return {
-    u: username,
-    p: password,
-    v: "1.16.1",
-    c: "navidrome-ui",
-    f: "json",
-  };
+async function baseParams() {
+  const { username, password } = await getConfig();
+  return { u: username, p: password, v: "1.16.1", c: "navidrome-ui", f: "json" };
 }
 
 /*
@@ -53,11 +21,11 @@ function baseParams() {
 export async function GET() {
   try {
     const { baseUrl } =
-      getConfig();
+      await getConfig();
 
     const params =
       new URLSearchParams(
-        baseParams()
+        await baseParams()
       );
 
     const response =
@@ -151,7 +119,7 @@ export async function POST(
     }
 
     const { baseUrl } =
-      getConfig();
+      await getConfig();
 
     /*
      * -------------------------------------------------------
@@ -162,7 +130,7 @@ export async function POST(
 
     const checkParams =
       new URLSearchParams(
-        baseParams()
+        await baseParams()
       );
 
     const checkResponse =
@@ -265,7 +233,7 @@ export async function POST(
 
     const params =
       new URLSearchParams({
-        ...baseParams(),
+        ...(await baseParams()),
         name,
       });
 
@@ -346,7 +314,7 @@ export async function POST(
 
     const verifyParams =
       new URLSearchParams(
-        baseParams()
+        await baseParams()
       );
 
     const verifyResponse =
@@ -494,11 +462,11 @@ export async function DELETE(
     }
 
     const { baseUrl } =
-      getConfig();
+      await getConfig();
 
     const params =
       new URLSearchParams({
-        ...baseParams(),
+        ...(await baseParams()),
         id,
       });
 

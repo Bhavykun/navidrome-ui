@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { usePlayer } from "@/context/PlayerContext";
+import Artwork from "@/components/Artwork";
 
 type Song = {
   id: string;
@@ -204,17 +205,13 @@ export default function ArtistPage() {
       {/* Artist hero */}
       <section className="flex flex-col items-center gap-8 px-6 py-10 md:flex-row md:items-end md:px-10">
         <div className="h-56 w-56 shrink-0 overflow-hidden rounded-full bg-zinc-900 shadow-2xl">
-          {artist.artistImageUrl ? (
-            <img
-              src={artist.artistImageUrl}
-              alt={artist.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-7xl text-zinc-700">
-              ♪
-            </div>
-          )}
+          <Artwork
+            alt={artist.name}
+            coverArt={artist.artistImageUrl}
+            artist
+            shape="circle"
+            className="h-full w-full"
+          />
         </div>
 
         <div>

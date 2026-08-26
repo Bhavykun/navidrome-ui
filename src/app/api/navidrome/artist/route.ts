@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getNavidromeConfig } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,16 +12,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const baseUrl = process.env.NAVIDROME_URL;
-    const username = process.env.NAVIDROME_USER;
-    const password = process.env.NAVIDROME_PASSWORD;
-
-    if (!baseUrl || !username || !password) {
-      return NextResponse.json(
-        { error: "Missing Navidrome configuration" },
-        { status: 500 }
-      );
-    }
+    const { baseUrl, username, password } = await getNavidromeConfig();
 
     const params = new URLSearchParams({
       id,

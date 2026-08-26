@@ -1,6 +1,7 @@
 "use client";
 
 import { Disc3, Mic2 } from "lucide-react";
+import { useState } from "react";
 
 export type ArtworkShape = "square" | "circle";
 
@@ -25,22 +26,21 @@ export default function Artwork({
   shape?: ArtworkShape;
   artist?: boolean;
 }) {
+  const [failed, setFailed] = useState(false);
   const source = artist && coverArt?.startsWith("http")
-    ? coverArt
+    ? `/api/navidrome/artist-image?url=${encodeURIComponent(coverArt)}`
     : artworkUrl(coverArt);
   const shapeClass = shape === "circle" ? "rounded-full" : "rounded-md";
 
   return (
     <div className={`overflow-hidden bg-[#151916] ${shapeClass} ${className}`}>
-      {source ? (
+      {source && !failed ? (
         <img
           src={source}
           alt={alt}
           loading="lazy"
           decoding="async"
-          onError={(event) => {
-            event.currentTarget.style.display = "none";
-          }}
+          onError={() => setFailed(true)}
           className="h-full w-full object-cover"
         />
       ) : (

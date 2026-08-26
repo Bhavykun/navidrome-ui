@@ -6,6 +6,7 @@ import {
     ArrowLeft,
     Search,
 } from "lucide-react";
+import Artwork from "@/components/Artwork";
 
 type Artist = {
     id: string;
@@ -184,28 +185,13 @@ export default function ArtistsPage() {
                                     className="block aspect-square w-full overflow-hidden rounded-full bg-zinc-900"
                                 >
 
-                                    {artist.artistImageUrl ? (
-
-                                        <img
-                                            src={
-                                                artist.artistImageUrl ||
-                                                "/artist-placeholder.jpg"
-                                            }
-                                            alt={artist.name}
-                                            onError={(e) => {
-                                                e.currentTarget.src =
-                                                    "/artist-placeholder.jpg";
-                                            }}
-                                            className="h-full w-full object-cover"
-                                        />
-
-                                    ) : (
-
-                                        <div className="flex h-full items-center justify-center text-6xl text-zinc-700">
-                                            ♪
-                                        </div>
-
-                                    )}
+                                    <Artwork
+                                        alt={artist.name}
+                                        coverArt={artist.artistImageUrl}
+                                        artist
+                                        shape="circle"
+                                        className="h-full w-full"
+                                    />
 
                                 </button>
 

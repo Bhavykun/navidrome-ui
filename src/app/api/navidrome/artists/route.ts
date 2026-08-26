@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { getNavidromeConfig } from "@/lib/auth";
 
 function md5(value: string) {
   return crypto
@@ -10,16 +11,7 @@ function md5(value: string) {
 
 export async function GET() {
   try {
-    const url = process.env.NAVIDROME_URL;
-    const username = process.env.NAVIDROME_USER;
-    const password = process.env.NAVIDROME_PASSWORD;
-
-    if (!url || !username || !password) {
-      return NextResponse.json(
-        { error: "Navidrome environment variables are missing" },
-        { status: 500 }
-      );
-    }
+    const { baseUrl: url, username, password } = await getNavidromeConfig();
 
     const salt = crypto.randomBytes(8).toString("hex");
     const token = md5(password + salt);

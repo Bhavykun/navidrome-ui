@@ -18,6 +18,8 @@ A modern web frontend for [Navidrome](https://www.navidrome.org/), built with Ne
 - Responsive desktop sidebar and mobile navigation
 - Lazy-loaded artwork with fallbacks
 - Navidrome credentials kept server-side
+- Login with encrypted HTTP-only sessions
+- Logout from the shared navigation
 
 ## Requirements
 
@@ -25,6 +27,7 @@ A modern web frontend for [Navidrome](https://www.navidrome.org/), built with Ne
 - npm
 - A running Navidrome server
 - A Navidrome user with access to the music library
+- A long random `AUTH_SECRET` for session encryption
 
 ## Getting Started
 
@@ -49,6 +52,7 @@ Create `.env.local` in the project root:
 NAVIDROME_URL=http://localhost:4533
 NAVIDROME_USER=your-navidrome-username
 NAVIDROME_PASSWORD=your-navidrome-password
+AUTH_SECRET=replace-with-a-long-random-secret
 ```
 
 `NAVIDROME_URL` should be the Navidrome origin without a trailing API path. For example:
@@ -58,6 +62,7 @@ NAVIDROME_URL=https://music.example.com
 ```
 
 Never commit `.env.local` or expose these values in client-side code.
+`AUTH_SECRET` is used to encrypt the login session cookie. Generate a strong random value for it and keep it private.
 
 ### 4. Start development
 
@@ -74,7 +79,7 @@ npm run build
 npm run start
 ```
 
-The production server also requires the three Navidrome environment variables.
+The production server requires the three Navidrome variables and `AUTH_SECRET`.
 
 ## Available Scripts
 
@@ -84,6 +89,18 @@ The production server also requires the three Navidrome environment variables.
 | `npm run build` | Create a production build |
 | `npm run start` | Start the production server |
 | `npm run lint` | Run ESLint |
+| `npm test` | Run the unit test suite once |
+| `npm run test:watch` | Run Vitest in watch mode |
+
+## Testing
+
+Unit tests use [Vitest](https://vitest.dev/) with a jsdom environment. The suite covers shared music rules that are easy to regress: duration formatting, song search and sorting, playlist editability, duplicate song IDs, queue clearing, and repeat behavior. It also covers the login workflow, invalid credentials, and password visibility.
+
+Run the tests with:
+
+```bash
+npm test
+```
 
 ## Application Routes
 
@@ -98,6 +115,7 @@ The production server also requires the three Navidrome environment variables.
 | `/playlists` | Playlist library |
 | `/playlists/[id]` | Playlist details and management |
 | `/search` | Global library search |
+| `/login` | Navidrome account login |
 
 ## Architecture
 

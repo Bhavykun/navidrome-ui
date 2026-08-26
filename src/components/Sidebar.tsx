@@ -5,7 +5,9 @@ import {
 	Home,
 	ListMusic,
 	Music2,
+	LogOut,
 	Search,
+	UserRound,
 	Users,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -16,6 +18,7 @@ const navigation = [
 	{ href: "/albums", label: "Albums", icon: Disc3 },
 	{ href: "/artists", label: "Artists", icon: Users },
 	{ href: "/playlists", label: "Playlists", icon: ListMusic },
+	{ href: "/profile", label: "Profile", icon: UserRound },
 ];
 
 function Navigation({ mobile = false }: { mobile?: boolean }) {
@@ -23,8 +26,12 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
 	const router = useRouter();
 
 	return (
-		<nav className={mobile ? "grid grid-cols-6 gap-1" : "space-y-1"}>
+		<nav className={mobile ? "grid grid-cols-5 gap-1" : "space-y-1"}>
 			{navigation.map(({ href, label, icon: Icon }) => {
+				if (mobile && href === "/profile") {
+					return null;
+				}
+
 				const active = href === "/"
 					? pathname === "/"
 					: pathname.startsWith(href);
@@ -43,25 +50,37 @@ function Navigation({ mobile = false }: { mobile?: boolean }) {
 					</button>
 				);
 			})}
-			{mobile && (
-				<button
-					type="button"
-					onClick={() => router.push("/search")}
-					className={`flex min-w-0 flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] ${pathname.startsWith("/search") ? "text-white" : "text-zinc-500"}`}
-				>
-					<Search size={19} strokeWidth={pathname.startsWith("/search") ? 2.5 : 2} />
-					<span className="truncate">Search</span>
-				</button>
-			)}
 		</nav>
 	);
 }
 
 export default function Sidebar() {
 	const router = useRouter();
+	const pathname = usePathname();
+
+	async function logout() {
+		await fetch("/api/auth/logout", { method: "POST" });
+		router.replace("/login");
+	}
 
 	return (
 		<>
+			<div className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-[#0b0d0c]/95 px-4 py-3 backdrop-blur-xl md:hidden">
+				<div className="flex items-center gap-2">
+					<div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#c7f36b] text-black">
+						<Music2 size={17} />
+					</div>
+					<span className="text-sm font-semibold">Northstar</span>
+				</div>
+				<div className="flex items-center gap-1">
+					<button type="button" onClick={() => router.push("/search")} className={`rounded-full p-2 ${pathname.startsWith("/search") ? "text-white" : "text-zinc-400"}`} title="Search">
+						<Search size={19} />
+					</button>
+					<button type="button" onClick={() => router.push("/profile")} className={`rounded-full p-2 ${pathname.startsWith("/profile") ? "bg-white text-black" : "text-zinc-400"}`} title="Profile">
+						<UserRound size={19} />
+					</button>
+				</div>
+			</div>
 			<aside className="fixed inset-y-0 left-0 z-40 hidden w-64 border-r border-white/10 bg-[#0b0d0c] px-4 py-6 md:block">
 				<div className="mb-10 flex items-center gap-3 px-3">
 					<div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#c7f36b] text-black">
@@ -79,6 +98,10 @@ export default function Sidebar() {
 						<Search size={18} />
 						Search
 					</button>
+						<button type="button" onClick={logout} className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-zinc-400 transition hover:bg-white/10 hover:text-white">
+							<LogOut size={18} />
+							Log out
+						</button>
 				</div>
 			</aside>
 			<div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#0b0d0c]/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">

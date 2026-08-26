@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Artwork from "@/components/Artwork";
 
 type Artist = {
   id: string;
@@ -181,26 +182,13 @@ export default function Home() {
                       }
                       className="group cursor-pointer rounded-xl p-3 text-left transition hover:bg-zinc-900"
                     >
-                      <div className="aspect-square overflow-hidden rounded-full bg-zinc-900">
-                        {artist.artistImageUrl ? (
-                          <img
-                            src={
-                              artist.artistImageUrl ||
-                              "/artist-placeholder.jpg"
-                            }
-                            alt={artist.name}
-                            onError={(e) => {
-                              e.currentTarget.src =
-                                "/artist-placeholder.jpg";
-                            }}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-5xl">
-                            🎤
-                          </div>
-                        )}
-                      </div>
+                      <Artwork
+                        alt={artist.name}
+                        coverArt={artist.artistImageUrl}
+                        artist
+                        shape="circle"
+                        className="aspect-square w-full"
+                      />
 
                       <h4 className="mt-3 truncate text-center font-medium">
                         {artist.name}

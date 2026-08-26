@@ -2,47 +2,15 @@ import {
   NextRequest,
   NextResponse,
 } from "next/server";
+import { getNavidromeConfig } from "@/lib/auth";
 
-function getConfig() {
-  const baseUrl =
-    process.env.NAVIDROME_URL;
-
-  const username =
-    process.env.NAVIDROME_USER;
-
-  const password =
-    process.env.NAVIDROME_PASSWORD;
-
-  if (
-    !baseUrl ||
-    !username ||
-    !password
-  ) {
-    throw new Error(
-      "Missing Navidrome configuration"
-    );
-  }
-
-  return {
-    baseUrl,
-    username,
-    password,
-  };
+async function getConfig() {
+  return getNavidromeConfig();
 }
 
-function getBaseParams() {
-  const {
-    username,
-    password,
-  } = getConfig();
-
-  return {
-    u: username,
-    p: password,
-    v: "1.16.1",
-    c: "navidrome-ui",
-    f: "json",
-  };
+async function getBaseParams() {
+  const { username, password } = await getConfig();
+  return { u: username, p: password, v: "1.16.1", c: "navidrome-ui", f: "json" };
 }
 
 /* =========================================================
@@ -72,11 +40,11 @@ export async function GET(
     }
 
     const { baseUrl } =
-      getConfig();
+      await getConfig();
 
     const params =
       new URLSearchParams({
-        ...getBaseParams(),
+        ...(await getBaseParams()),
         id,
       });
 
@@ -200,7 +168,7 @@ export async function POST(
     }
 
     const { baseUrl } =
-      getConfig();
+      await getConfig();
 
     /*
      * Get the current playlist
@@ -208,7 +176,7 @@ export async function POST(
      */
     const getParams =
       new URLSearchParams({
-        ...getBaseParams(),
+        ...(await getBaseParams()),
         id: playlistId,
       });
 
@@ -325,7 +293,7 @@ export async function POST(
      */
     const params =
       new URLSearchParams(
-        getBaseParams()
+        await getBaseParams()
       );
 
     params.set(
@@ -390,7 +358,7 @@ export async function POST(
      */
     const verifyParams =
       new URLSearchParams({
-        ...getBaseParams(),
+        ...(await getBaseParams()),
         id: playlistId,
       });
 
@@ -550,11 +518,11 @@ export async function PUT(
     }
 
     const { baseUrl } =
-      getConfig();
+      await getConfig();
 
     const params =
       new URLSearchParams({
-        ...getBaseParams(),
+        ...(await getBaseParams()),
         playlistId,
         name,
       });
@@ -674,11 +642,11 @@ export async function DELETE(
     }
 
     const { baseUrl } =
-      getConfig();
+      await getConfig();
 
     const params =
       new URLSearchParams({
-        ...getBaseParams(),
+        ...(await getBaseParams()),
         playlistId,
       });
 
