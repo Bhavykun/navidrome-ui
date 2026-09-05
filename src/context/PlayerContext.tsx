@@ -25,6 +25,12 @@ export type LoopMode =
   | "all"
   | "one";
 
+export type PlaybackQuality =
+  | "original"
+  | "high"
+  | "balanced"
+  | "data-saver";
+
 type PlayerContextType = {
   currentSong: Song | null;
 
@@ -42,6 +48,12 @@ type PlayerContextType = {
 
   shuffle: boolean;
   loop: LoopMode;
+
+  quality: PlaybackQuality;
+
+  activeQuality: PlaybackQuality;
+
+  setQuality: (value: PlaybackQuality) => void;
 
   playSong: (
     song: Song,
@@ -150,6 +162,9 @@ export function PlayerProvider({
   const loopRef =
     useRef<LoopMode>("off");
 
+  const playRequestRef =
+    useRef(0);
+
   const [currentSong, setCurrentSong] =
     useState<Song | null>(null);
 
@@ -179,6 +194,18 @@ export function PlayerProvider({
 
   const [loop, setLoop] =
     useState<LoopMode>("off");
+
+  const [quality, setQualityState] =
+    useState<PlaybackQuality>(() => {
+      if (typeof window === "undefined") return "balanced";
+      const stored = window.localStorage.getItem("northstar_playback_quality");
+      return stored === "original" || stored === "high" || stored === "data-saver"
+        ? stored
+        : "balanced";
+    });
+
+  const [activeQuality, setActiveQuality] =
+    useState<PlaybackQuality>("balanced");
 
   /*
    * Keep refs synchronized.
@@ -219,8 +246,19 @@ export function PlayerProvider({
       return;
     }
 
+    const playRequest =
+      playRequestRef.current + 1;
+
+    playRequestRef.current =
+      playRequest;
+
+    audio.pause();
+    audio.removeAttribute("src");
+    audio.load();
+
     setCurrentSong(song);
     setPlaybackError(null);
+    setActiveQuality(quality);
 
     setProgress(0);
 
@@ -228,19 +266,33 @@ export function PlayerProvider({
       song.duration || 0
     );
 
-    audio.src =
-      `/api/navidrome/stream?id=${encodeURIComponent(
-        song.id
-      )}`;
+    const streamUrl = new URL(
+      "/api/navidrome/stream",
+      window.location.origin
+    );
+    streamUrl.searchParams.set("id", song.id);
+    streamUrl.searchParams.set("quality", quality);
+
+    audio.preload = "auto";
+    audio.src = streamUrl.toString();
+    audio.load();
 
     audio.currentTime = 0;
 
     audio
       .play()
       .then(() => {
+        if (playRequestRef.current !== playRequest) {
+          return;
+        }
+
         setIsPlaying(true);
       })
       .catch((error) => {
+        if (playRequestRef.current !== playRequest) {
+          return;
+        }
+
         console.error(
           "Playback failed:",
           error
@@ -249,6 +301,11 @@ export function PlayerProvider({
         setIsPlaying(false);
         setPlaybackError("Playback could not start. Check the Navidrome connection.");
       });
+  }
+
+  function setQuality(value: PlaybackQuality) {
+    setQualityState(value);
+    window.localStorage.setItem("northstar_playback_quality", value);
   }
 
   /*
@@ -1160,6 +1217,12 @@ export function PlayerProvider({
 
         shuffle,
         loop,
+
+        quality,
+
+        activeQuality,
+
+        setQuality,
 
         playSong,
         playQueueSong,

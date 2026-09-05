@@ -103,7 +103,7 @@ export default function Home() {
                 </h3>
 
                 <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                  {albums.map((album) => (
+                  {albums.map((album, index) => (
                     <div
                       key={album.id}
                       className="group cursor-pointer"
@@ -115,27 +115,12 @@ export default function Home() {
                     >
                       {/* Artwork */}
                       <div className="relative aspect-square overflow-hidden rounded-xl bg-zinc-900">
-                        {album.coverArt ? (
-                          <img
-                            src={
-                              album.coverArt
-                                ? `/api/navidrome/cover?id=${encodeURIComponent(
-                                  album.coverArt
-                                )}`
-                                : "/album-placeholder.jpg"
-                            }
-                            alt={album.name}
-                            onError={(e) => {
-                              e.currentTarget.src =
-                                "/album-placeholder.jpg";
-                            }}
-                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-5xl">
-                            💿
-                          </div>
-                        )}
+                        <Artwork
+                          alt={album.name}
+                          coverArt={album.coverArt}
+                          priority={index === 0}
+                          className="h-full w-full transition duration-300 group-hover:scale-105"
+                        />
 
                         {/* Play button */}
                         <button

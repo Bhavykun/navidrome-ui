@@ -12,6 +12,7 @@ A modern web frontend for [Navidrome](https://www.navidrome.org/), built with Ne
 - Persistent audio player across route changes
 - Queue management with play next, remove, clear, shuffle, and repeat
 - Seek and volume controls
+- Playback quality modes for lower-bandwidth connections
 - Create, rename, and delete playlists
 - Add individual songs or complete albums to playlists
 - Remove playlist songs without changing the player queue
@@ -135,6 +136,8 @@ The browser communicates with local `/api/navidrome/*` routes. Those routes call
 The audio element is created once by `PlayerProvider` and survives client-side navigation. Adding, removing, shuffling, or clearing queue entries does not replace the active audio source. Only an explicit play action changes the stream URL.
 
 The stream proxy forwards HTTP range requests so seeking works with supported Navidrome media formats.
+
+Playback quality can be selected from the Profile page. Data Saver uses 96 kbps, Balanced uses 160 kbps, High uses 320 kbps, and Original disables the bitrate limit. The selected mode applies when the next song starts and does not interrupt the current track.
 
 ## Troubleshooting
 

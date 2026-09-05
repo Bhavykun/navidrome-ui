@@ -23,6 +23,7 @@ import {
   Song,
   usePlayer,
 } from "@/context/PlayerContext";
+import Artwork from "@/components/Artwork";
 
 type Playlist = {
   id: string;
@@ -299,20 +300,11 @@ export default function PlaylistPage() {
 
         <div className="h-56 w-56 shrink-0 overflow-hidden rounded-xl bg-zinc-900 shadow-2xl">
 
-          <img
-            src={
-              playlist.coverArt
-                ? `/api/navidrome/cover?id=${encodeURIComponent(
-                    playlist.coverArt
-                  )}`
-                : "/album-placeholder.jpg"
-            }
-            onError={(event) => {
-              event.currentTarget.src =
-                "/album-placeholder.jpg";
-            }}
+          <Artwork
             alt={playlist.name}
-            className="h-full w-full object-cover"
+            coverArt={playlist.coverArt}
+            className="h-full w-full"
+            priority
           />
 
         </div>

@@ -45,6 +45,15 @@ function formatTime(
   return `${minutes}:${secs}`;
 }
 
+function qualityLabel(
+  quality: "original" | "high" | "balanced" | "data-saver"
+) {
+  if (quality === "original") return "Original";
+  if (quality === "high") return "320 kbps";
+  if (quality === "data-saver") return "96 kbps";
+  return "160 kbps";
+}
+
 export default function Player() {
   const {
     currentSong,
@@ -54,6 +63,7 @@ export default function Player() {
 
     isPlaying,
     playbackError,
+    activeQuality,
 
     progress,
     duration,
@@ -298,6 +308,10 @@ export default function Player() {
               <p className="truncate text-[11px] text-zinc-500 sm:text-xs">
                 {currentSong.artist}
               </p>
+
+              <span className="text-[10px] text-[#c7f36b]">
+                {qualityLabel(activeQuality)}
+              </span>
 
               {playbackError && (
                 <button

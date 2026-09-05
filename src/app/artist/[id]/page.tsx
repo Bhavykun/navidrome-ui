@@ -108,38 +108,24 @@ export default function ArtistPage() {
         const albums =
           result?.album ?? [];
 
-        const songResults: Song[] = [];
-
-        for (const album of albums) {
-          try {
-            const albumResponse =
-              await fetch(
+        const albumResults = await Promise.all(
+          albums.map(async (album: Album) => {
+            try {
+              const albumResponse = await fetch(
                 `/api/navidrome/album?id=${album.id}`,
-                {
-                  cache: "no-store",
-                }
+                { cache: "no-store" }
               );
 
-            if (!albumResponse.ok) {
-              continue;
+              if (!albumResponse.ok) return [];
+              const albumData = await albumResponse.json();
+              return albumData["subsonic-response"]?.album?.song ?? [];
+            } catch {
+              return [];
             }
+          })
+        );
 
-            const albumData =
-              await albumResponse.json();
-
-            const albumSongs =
-              albumData[
-                "subsonic-response"
-              ]?.album?.song ?? [];
-
-            songResults.push(
-              ...albumSongs
-            );
-          } catch {
-            // Ignore an individual
-            // album failure.
-          }
-        }
+        const songResults: Song[] = albumResults.flat();
 
         setSongs(songResults);
       } catch (error) {
@@ -268,21 +254,11 @@ export default function ArtistPage() {
               }
               className="group min-w-0 text-left"
             >
-              <div className="aspect-square overflow-hidden rounded-xl bg-zinc-900">
-                {album.coverArt ? (
-                  <img
-                    src={`/api/navidrome/cover?id=${encodeURIComponent(
-                      album.coverArt
-                    )}`}
-                    alt={album.name}
-                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-5xl text-zinc-700">
-                    ♪
-                  </div>
-                )}
-              </div>
+              <Artwork
+                alt={album.name}
+                coverArt={album.coverArt}
+                className="aspect-square w-full transition duration-300 group-hover:scale-105"
+              />
 
               <p className="mt-3 truncate font-medium">
                 {album.name}

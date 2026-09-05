@@ -1,6 +1,7 @@
 "use client";
 
 import { Disc3, Mic2 } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 
 export type ArtworkShape = "square" | "circle";
@@ -19,12 +20,14 @@ export default function Artwork({
   className = "",
   shape = "square",
   artist = false,
+  priority = false,
 }: {
   alt: string;
   coverArt?: string;
   className?: string;
   shape?: ArtworkShape;
   artist?: boolean;
+  priority?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   const source = artist && coverArt?.startsWith("http")
@@ -33,13 +36,15 @@ export default function Artwork({
   const shapeClass = shape === "circle" ? "rounded-full" : "rounded-md";
 
   return (
-    <div className={`overflow-hidden bg-[#151916] ${shapeClass} ${className}`}>
+    <div className={`relative overflow-hidden bg-[#151916] ${shapeClass} ${className}`}>
       {source && !failed ? (
-        <img
+        <Image
           src={source}
           alt={alt}
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
           decoding="async"
+          fill
+          unoptimized
           onError={() => setFailed(true)}
           className="h-full w-full object-cover"
         />

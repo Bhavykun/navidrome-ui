@@ -32,23 +32,30 @@ export default function SearchPage() {
     const timeout = window.setTimeout(async () => {
       try {
         setLoading(true);
-        const [songsResponse, albumsResponse, artistsResponse, playlistsResponse] = await Promise.all([
-          fetch("/api/navidrome/songs", { cache: "no-store", signal: controller.signal }),
-          fetch("/api/navidrome/albums", { cache: "no-store", signal: controller.signal }),
-          fetch("/api/navidrome/artists", { cache: "no-store", signal: controller.signal }),
-          fetch("/api/navidrome/playlists", { cache: "no-store", signal: controller.signal }),
+        const [response, playlistsResponse] = await Promise.all([
+          fetch(`/api/navidrome/search?q=${encodeURIComponent(searchQuery)}`, {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
+          fetch("/api/navidrome/playlists", {
+            cache: "no-store",
+            signal: controller.signal,
+          }),
         ]);
-        const [songsData, albumsData, artistsData, playlistsData] = await Promise.all([
-          songsResponse.json(),
-          albumsResponse.json(),
-          artistsResponse.json(),
+        const [data, playlistsData] = await Promise.all([
+          response.json(),
           playlistsResponse.json(),
         ]);
+        const result = data["subsonic-response"]?.searchResult3 ?? {};
 
-        setSongs(songsData["subsonic-response"]?.searchResult3?.song ?? []);
-        setAlbums(albumsData["subsonic-response"]?.albumList2?.album ?? []);
-        setArtists((artistsData["subsonic-response"]?.artists?.index ?? []).flatMap((group: { artist?: Artist[] }) => group.artist ?? []));
-        setPlaylists(playlistsData["subsonic-response"]?.playlists?.playlist ?? []);
+        setSongs(result.song ?? []);
+        setAlbums(result.album ?? []);
+        setArtists(result.artist ?? []);
+        setPlaylists(
+          (playlistsData["subsonic-response"]?.playlists?.playlist ?? [])
+            .filter((playlist: Playlist) => playlist.name.toLowerCase().includes(searchQuery.toLowerCase()))
+            .slice(0, 8)
+        );
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           console.error("Search loading error:", error);

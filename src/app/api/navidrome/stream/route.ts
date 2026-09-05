@@ -12,6 +12,7 @@ function md5(value: string) {
 export async function GET(request: NextRequest) {
   try {
     const songId = request.nextUrl.searchParams.get("id");
+    const quality = request.nextUrl.searchParams.get("quality") || "balanced";
 
     if (!songId) {
       return new Response("Missing song ID", {
@@ -33,18 +34,45 @@ export async function GET(request: NextRequest) {
       c: "navidrome-ui",
     });
 
-    const upstream = await fetch(
-      `${baseUrl}/rest/stream.view?${params.toString()}`,
-      {
-        headers: {
-          Range:
-            request.headers.get("range") || "bytes=0-",
-        },
-        cache: "no-store",
-      }
-    );
+    const bitrateByQuality: Record<string, string> = {
+      "data-saver": "96",
+      balanced: "160",
+      high: "320",
+    };
+    const maxBitRate = bitrateByQuality[quality];
 
-    if (!upstream.ok && upstream.status !== 206) {
+    if (maxBitRate) {
+      params.set("maxBitRate", maxBitRate);
+      params.set("format", "mp3");
+    }
+
+    const range = request.headers.get("range") || "bytes=0-";
+    const fetchStream = () => {
+      const headers: HeadersInit = params.has("maxBitRate")
+        ? {}
+        : { Range: range };
+
+      return fetch(
+        `${baseUrl}/rest/stream.view?${params.toString()}`,
+        { headers, cache: "no-store" }
+      );
+    };
+
+    let upstream = await fetchStream();
+    const firstContentType = upstream.headers.get("content-type") || "";
+    const transcodeFailed = !upstream.ok && upstream.status !== 206;
+    const returnedErrorDocument = firstContentType.includes("xml") || firstContentType.includes("json");
+
+    if (maxBitRate && (transcodeFailed || returnedErrorDocument)) {
+      await upstream.arrayBuffer();
+      params.delete("maxBitRate");
+      params.delete("format");
+      upstream = await fetchStream();
+    }
+
+    const finalContentType = upstream.headers.get("content-type") || "";
+
+    if ((!upstream.ok && upstream.status !== 206) || finalContentType.includes("xml") || finalContentType.includes("json")) {
       const text = await upstream.text();
 
       console.error(
@@ -91,6 +119,11 @@ export async function GET(request: NextRequest) {
         "Content-Range",
         contentRange
       );
+    }
+
+    if (params.has("maxBitRate")) {
+      headers.delete("Content-Range");
+      headers.delete("Content-Length");
     }
 
     headers.set(

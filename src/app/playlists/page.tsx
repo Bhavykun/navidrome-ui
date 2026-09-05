@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { usePlayer } from "@/context/PlayerContext";
+import Artwork from "@/components/Artwork";
 
 type Playlist = {
   id: string;
@@ -268,28 +269,11 @@ export default function PlaylistsPage() {
                     className="relative aspect-square cursor-pointer overflow-hidden rounded-xl bg-zinc-900"
                   >
 
-                    {playlist.coverArt ? (
-
-                      <img
-                        src={`/api/navidrome/cover?id=${encodeURIComponent(
-                          playlist.coverArt
-                        )}`}
-                        alt={playlist.name}
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                      />
-
-                    ) : (
-
-                      <div className="flex h-full items-center justify-center">
-
-                        <ListMusic
-                          size={70}
-                          strokeWidth={1}
-                          className="text-zinc-700"
-                        />
-
-                      </div>
-                    )}
+                    <Artwork
+                      alt={playlist.name}
+                      coverArt={playlist.coverArt}
+                      className="h-full w-full transition duration-300 group-hover:scale-105"
+                    />
 
                     {/* Play button */}
 

@@ -3,8 +3,10 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { ArrowLeft, Camera, ListMusic, LogOut, Save, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import Artwork from "@/components/Artwork";
+import { PlaybackQuality, usePlayer } from "@/context/PlayerContext";
 
 type Playlist = {
   id: string;
@@ -16,6 +18,7 @@ type Playlist = {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { quality, setQuality } = usePlayer();
   const [username, setUsername] = useState("Music listener");
   const [bio, setBio] = useState(() => typeof window === "undefined" ? "" : window.localStorage.getItem("northstar_profile_bio") ?? "");
   const [savedBio, setSavedBio] = useState(() => typeof window === "undefined" ? "" : window.localStorage.getItem("northstar_profile_bio") ?? "");
@@ -103,7 +106,7 @@ export default function ProfilePage() {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
             <div className="relative h-28 w-28 shrink-0">
               {avatar ? (
-                <img src={avatar} alt="Profile" className="h-full w-full rounded-full object-cover" />
+                <Image src={avatar} alt="Profile" fill unoptimized className="rounded-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center rounded-full bg-[#c7f36b] text-4xl font-bold text-black">
                   {username.slice(0, 1).toUpperCase()}
@@ -128,6 +131,26 @@ export default function ProfilePage() {
               <span className="text-xs text-zinc-600">{bio.length}/240</span>
               <button type="button" onClick={saveProfile} disabled={bio.trim() === savedBio} className="flex items-center gap-2 rounded-lg bg-[#c7f36b] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#dafa96] disabled:cursor-not-allowed disabled:opacity-40"><Save size={16} /> Save bio</button>
             </div>
+          </div>
+
+          <div className="mt-8 border-t border-white/10 pt-6">
+            <label className="block text-sm font-medium text-zinc-300" htmlFor="playback-quality">
+              Playback quality
+            </label>
+            <p className="mt-1 text-xs leading-5 text-zinc-600">
+              Choose once before listening. This applies to the next song and does not interrupt the current track.
+            </p>
+            <select
+              id="playback-quality"
+              value={quality}
+              onChange={(event) => setQuality(event.target.value as PlaybackQuality)}
+              className="mt-3 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-sm text-zinc-200 outline-none focus:border-[#c7f36b]"
+            >
+              <option value="data-saver" className="bg-zinc-900">Data saver · 96 kbps</option>
+              <option value="balanced" className="bg-zinc-900">Balanced · 160 kbps</option>
+              <option value="high" className="bg-zinc-900">High quality · 320 kbps</option>
+              <option value="original" className="bg-zinc-900">Original · no limit</option>
+            </select>
           </div>
         </div>
 
